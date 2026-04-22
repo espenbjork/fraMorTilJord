@@ -1,0 +1,1274 @@
+<!DOCTYPE html>
+<html lang="nb">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Permisjonsplanlegger – barnehagestart</title>
+<style>
+  /* =========================================================
+     DESIGN TOKENS – varm & jordnær (samme som resten av prosjektet)
+     ========================================================= */
+  :root {
+    --bg: #F5EFE6;
+    --surface: #FEFAF4;
+    --surface-muted: #EFE6D8;
+    --border: #E3D7C3;
+    --border-strong: #CDBEA6;
+
+    --text: #2D2621;
+    --text-muted: #6B6055;
+    --text-soft: #8C8073;
+
+    --accent: #B85C3C;
+    --accent-hover: #9E4B2E;
+    --accent-soft: #F2DDD1;
+    --success: #6F8A4E;
+    --success-soft: #E1E8D4;
+    --warning: #C9913A;
+    --warning-soft: #F5E6CA;
+    --info: #5A7A8C;
+    --info-soft: #DDE6EC;
+    --danger: #A8443A;
+    --danger-soft: #F2D6D1;
+
+    --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    --font-serif: "Source Serif Pro", "Georgia", serif;
+
+    --fs-xs: 0.75rem;
+    --fs-sm: 0.875rem;
+    --fs-base: 1rem;
+    --fs-md: 1.125rem;
+    --fs-lg: 1.375rem;
+    --fs-xl: 1.75rem;
+    --fs-2xl: 2.25rem;
+
+    --s-1: 4px;  --s-2: 8px;  --s-3: 12px;
+    --s-4: 16px; --s-5: 24px; --s-6: 32px;
+    --s-7: 48px; --s-8: 64px;
+
+    --r-sm: 6px; --r-md: 10px; --r-lg: 16px; --r-xl: 24px; --r-full: 999px;
+
+    --sh-sm: 0 1px 2px rgba(67, 46, 28, 0.04);
+    --sh-md: 0 2px 8px rgba(67, 46, 28, 0.06), 0 1px 2px rgba(67, 46, 28, 0.04);
+    --sh-lg: 0 8px 24px rgba(67, 46, 28, 0.08);
+
+    --focus: 0 0 0 3px rgba(184, 92, 60, 0.35);
+
+    /* Fargekoder for tidslinjesegmenter */
+    --seg-foreldrepenger: #6F8A4E;   /* moss/oliven */
+    --seg-foreldrepenger-soft: #E1E8D4;
+    --seg-ferie: #C9913A;             /* gyllen */
+    --seg-ferie-soft: #F5E6CA;
+    --seg-ulonnet: #B85C3C;           /* terrakotta */
+    --seg-ulonnet-soft: #F2DDD1;
+    --seg-omsorg: #5A7A8C;            /* blå-grå */
+    --seg-omsorg-soft: #DDE6EC;
+    --seg-arbeid: #CDBEA6;            /* sand */
+    --seg-helg: #EFE6D8;              /* lys sand */
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-size: var(--fs-base);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  h1, h2, h3, h4 {
+    font-family: var(--font-serif);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+    color: var(--text);
+    margin: 0 0 var(--s-3) 0;
+  }
+  h1 { font-size: var(--fs-2xl); }
+  h2 { font-size: var(--fs-xl); }
+  h3 { font-size: var(--fs-lg); }
+  p { margin: 0 0 var(--s-3) 0; color: var(--text-muted); }
+
+  .wrap {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: var(--s-6) var(--s-5) var(--s-8);
+  }
+
+  header.page-head {
+    margin-bottom: var(--s-6);
+  }
+  header.page-head .kicker {
+    font-size: var(--fs-sm);
+    color: var(--text-soft);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin-bottom: var(--s-2);
+  }
+  header.page-head .sub {
+    color: var(--text-muted);
+    font-size: var(--fs-md);
+    max-width: 64ch;
+  }
+
+  .privacy-note {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--s-2);
+    background: var(--success-soft);
+    color: #3f5332;
+    padding: var(--s-2) var(--s-3);
+    border-radius: var(--r-full);
+    font-size: var(--fs-sm);
+    margin-top: var(--s-3);
+    border: 1px solid #c9d7b5;
+  }
+  .privacy-note .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--success);
+  }
+
+  /* Layout: form + main */
+  .grid {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: var(--s-6);
+  }
+  @media (max-width: 960px) {
+    .grid { grid-template-columns: 1fr; }
+  }
+
+  /* Card */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    padding: var(--s-5);
+    box-shadow: var(--sh-sm);
+  }
+  .card + .card { margin-top: var(--s-4); }
+
+  /* Form */
+  form.input-card .field {
+    display: block;
+    margin-bottom: var(--s-4);
+  }
+  form.input-card label {
+    display: block;
+    font-size: var(--fs-sm);
+    color: var(--text);
+    font-weight: 500;
+    margin-bottom: var(--s-1);
+  }
+  form.input-card .hint {
+    font-size: var(--fs-xs);
+    color: var(--text-soft);
+    margin-top: 2px;
+  }
+  form.input-card input[type="date"],
+  form.input-card input[type="number"],
+  form.input-card select {
+    width: 100%;
+    padding: var(--s-2) var(--s-3);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--r-sm);
+    background: var(--surface);
+    color: var(--text);
+    font-family: inherit;
+    font-size: var(--fs-sm);
+  }
+  form.input-card input:focus,
+  form.input-card select:focus {
+    outline: none;
+    box-shadow: var(--focus);
+    border-color: var(--accent);
+  }
+  form.input-card .row2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--s-3);
+  }
+
+  /* Pill-gruppe for dekningsgrad, ferieuker, mål */
+  .pill-group {
+    display: flex;
+    gap: 6px;
+    background: var(--surface-muted);
+    padding: 4px;
+    border-radius: var(--r-full);
+    border: 1px solid var(--border);
+  }
+  .pill-group button {
+    flex: 1;
+    background: transparent;
+    border: none;
+    padding: 6px 10px;
+    border-radius: var(--r-full);
+    font-size: var(--fs-sm);
+    color: var(--text-muted);
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .pill-group button.active {
+    background: var(--surface);
+    color: var(--text);
+    box-shadow: var(--sh-sm);
+    font-weight: 500;
+  }
+
+  .section-label {
+    font-size: var(--fs-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-soft);
+    margin: var(--s-5) 0 var(--s-2);
+  }
+  .section-label:first-child { margin-top: 0; }
+
+  /* Plan-kort */
+  .plans {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--s-3);
+    margin-bottom: var(--s-5);
+  }
+  @media (max-width: 720px) {
+    .plans { grid-template-columns: 1fr; }
+  }
+  .plan-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    padding: var(--s-4);
+    cursor: pointer;
+    transition: all 0.12s;
+    text-align: left;
+    font-family: inherit;
+    color: var(--text);
+  }
+  .plan-card:hover {
+    border-color: var(--border-strong);
+    box-shadow: var(--sh-sm);
+  }
+  .plan-card.active {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-soft);
+    background: var(--surface);
+  }
+  .plan-card .plan-title {
+    font-family: var(--font-serif);
+    font-weight: 600;
+    font-size: var(--fs-md);
+    margin-bottom: var(--s-1);
+  }
+  .plan-card .plan-sub {
+    font-size: var(--fs-xs);
+    color: var(--text-soft);
+    margin-bottom: var(--s-3);
+  }
+  .plan-card .metric-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: var(--fs-xs);
+    color: var(--text-muted);
+    margin-top: var(--s-1);
+  }
+  .plan-card .metric-row strong {
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  /* KPI-rad over tidslinja */
+  .kpis {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--s-3);
+    margin-bottom: var(--s-5);
+  }
+  @media (max-width: 720px) {
+    .kpis { grid-template-columns: repeat(2, 1fr); }
+  }
+  .kpi {
+    background: var(--surface-muted);
+    border-radius: var(--r-md);
+    padding: var(--s-3) var(--s-4);
+    border: 1px solid var(--border);
+  }
+  .kpi .label {
+    font-size: var(--fs-xs);
+    color: var(--text-soft);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 2px;
+  }
+  .kpi .value {
+    font-family: var(--font-serif);
+    font-size: var(--fs-lg);
+    color: var(--text);
+    font-weight: 600;
+  }
+  .kpi .unit {
+    font-size: var(--fs-xs);
+    color: var(--text-muted);
+    margin-left: 2px;
+  }
+
+  /* Tidslinje */
+  .timeline {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    padding: var(--s-5);
+    overflow-x: auto;
+  }
+  .timeline-rows {
+    min-width: 700px;
+    position: relative;
+  }
+  .tl-row {
+    display: grid;
+    grid-template-columns: 80px 1fr;
+    align-items: center;
+    margin-bottom: var(--s-2);
+  }
+  .tl-row .tl-label {
+    font-size: var(--fs-sm);
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+  .tl-track {
+    position: relative;
+    height: 34px;
+    background: var(--surface-muted);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .tl-segment {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    border-right: 1px solid rgba(255,255,255,0.4);
+    display: flex;
+    align-items: center;
+    padding: 0 4px;
+    font-size: 10px;
+    color: rgba(255,255,255,0.95);
+    overflow: hidden;
+    white-space: nowrap;
+    cursor: help;
+  }
+  .tl-segment.foreldrepenger { background: var(--seg-foreldrepenger); }
+  .tl-segment.ferie { background: var(--seg-ferie); }
+  .tl-segment.ulonnet { background: var(--seg-ulonnet); }
+  .tl-segment.omsorg { background: var(--seg-omsorg); }
+  .tl-segment.arbeid { background: var(--seg-arbeid); color: var(--text); }
+
+  .tl-markers {
+    position: relative;
+    grid-column: 2;
+    height: 18px;
+    margin-top: 4px;
+  }
+  .tl-marker {
+    position: absolute;
+    top: 0;
+    transform: translateX(-50%);
+    text-align: center;
+    font-size: var(--fs-xs);
+    color: var(--text-soft);
+    white-space: nowrap;
+  }
+  .tl-marker::before {
+    content: '';
+    display: block;
+    width: 1px;
+    height: 6px;
+    background: var(--text-soft);
+    margin: 0 auto 2px;
+  }
+  .tl-marker.birth { color: var(--accent); font-weight: 600; }
+  .tl-marker.birth::before { background: var(--accent); }
+  .tl-marker.start { color: var(--success); font-weight: 600; }
+  .tl-marker.start::before { background: var(--success); }
+
+  .tl-months {
+    position: relative;
+    grid-column: 2;
+    height: 22px;
+    margin-top: var(--s-3);
+    border-top: 1px solid var(--border);
+  }
+  .tl-month {
+    position: absolute;
+    top: 4px;
+    transform: translateX(-50%);
+    font-size: var(--fs-xs);
+    color: var(--text-soft);
+  }
+
+  /* Forklaring og segmentliste */
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-3);
+    margin: var(--s-4) 0 var(--s-2);
+    font-size: var(--fs-xs);
+    color: var(--text-muted);
+  }
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .legend-swatch {
+    width: 12px; height: 12px; border-radius: 3px;
+  }
+
+  .explanation {
+    margin-top: var(--s-5);
+  }
+  .explanation h3 { margin-bottom: var(--s-3); }
+  .explanation-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .explanation-list li {
+    padding: var(--s-2) 0;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: var(--s-3);
+    font-size: var(--fs-sm);
+    color: var(--text-muted);
+  }
+  .explanation-list li:first-child { border-top: none; }
+  .explanation-list li .tag {
+    flex: 0 0 auto;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 2px 6px;
+    border-radius: var(--r-sm);
+    background: var(--surface-muted);
+    color: var(--text-muted);
+    height: fit-content;
+  }
+  .explanation-list li .tag.warn {
+    background: var(--warning-soft);
+    color: #7a5a20;
+  }
+  .explanation-list li .tag.risk {
+    background: var(--danger-soft);
+    color: #7a2820;
+  }
+
+  .segments-table {
+    width: 100%;
+    font-size: var(--fs-sm);
+    margin-top: var(--s-4);
+    border-collapse: collapse;
+  }
+  .segments-table th, .segments-table td {
+    text-align: left;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-muted);
+  }
+  .segments-table th {
+    font-weight: 500;
+    font-size: var(--fs-xs);
+    color: var(--text-soft);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    background: var(--surface-muted);
+  }
+  .segments-table td.person-mor { color: #8a4430; }
+  .segments-table td.person-far { color: #3a5566; }
+
+  footer.page-foot {
+    margin-top: var(--s-7);
+    padding-top: var(--s-5);
+    border-top: 1px solid var(--border);
+    color: var(--text-soft);
+    font-size: var(--fs-xs);
+    line-height: 1.6;
+  }
+  footer.page-foot a { color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="page-head">
+  <div class="kicker">Prototype · barnehagestart-planlegger</div>
+  <h1>Permisjonsplanlegger</h1>
+  <p class="sub">Legg inn fødselsdato og barnehagestart, og få et forslag til hvordan foreldrepermisjon, fedrekvote og ferie kan fordeles for at det skal gå opp.</p>
+  <div class="privacy-note"><span class="dot"></span> Alt regnes lokalt i nettleseren — ingen data sendes noe sted.</div>
+</header>
+
+<div class="grid">
+
+  <!-- SKJEMA -->
+  <form class="card input-card" id="inputForm" onsubmit="return false;">
+    <div class="section-label">Barnet</div>
+
+    <div class="field">
+      <label for="fodselsdato">Fødselsdato (eller termin)</label>
+      <input type="date" id="fodselsdato" />
+      <div class="hint">Personopplysning — lagres bare lokalt.</div>
+    </div>
+
+    <div class="field">
+      <label for="barnehagestart">Barnehagestart</label>
+      <input type="date" id="barnehagestart" />
+      <div class="hint">Default: 15. august året etter fødsel.</div>
+    </div>
+
+    <div class="section-label">Dekningsgrad</div>
+    <div class="pill-group" role="tablist" aria-label="Dekningsgrad">
+      <button type="button" data-key="dekningsgrad" data-value="100" class="active">100 %</button>
+      <button type="button" data-key="dekningsgrad" data-value="80">80 %</button>
+    </div>
+    <div class="hint" style="margin-top:4px;">Velges ved første uttak og kan ikke endres midt i.</div>
+
+    <div class="section-label">Inntekt</div>
+    <div class="row2">
+      <div class="field" style="margin:0;">
+        <label for="morLonn">Mors årslønn</label>
+        <input type="number" id="morLonn" min="0" step="10000" value="650000" />
+      </div>
+      <div class="field" style="margin:0;">
+        <label for="farLonn">Fars årslønn</label>
+        <input type="number" id="farLonn" min="0" step="10000" value="700000" />
+      </div>
+    </div>
+    <div class="hint" style="margin-top:4px;">NAV dekker inntil 6G (~812 tusen i 2026). Over det avhenger av arbeidsgiver.</div>
+
+    <div class="section-label">Ferie</div>
+    <div class="pill-group">
+      <button type="button" data-key="ferieUker" data-value="4.2">4 + 1 uker</button>
+      <button type="button" data-key="ferieUker" data-value="5" class="active">5 uker</button>
+    </div>
+    <div class="hint" style="margin-top:4px;">Femte uke følger ofte av tariff/avtale.</div>
+
+    <div class="section-label">Optimeringsmål</div>
+    <div class="pill-group" style="flex-direction:column;">
+      <button type="button" data-key="mal" data-value="minstGap">Minst gap til barnehage</button>
+      <button type="button" data-key="mal" data-value="mestPenger">Mest penger</button>
+      <button type="button" data-key="mal" data-value="balansert" class="active">Balansert</button>
+    </div>
+  </form>
+
+  <!-- RESULTAT -->
+  <main>
+    <div class="card" style="padding-top:var(--s-4);">
+      <h2 style="margin-bottom:var(--s-1);">Tre forslag</h2>
+      <p style="font-size:var(--fs-sm);">Klikk på et forslag for å se tidslinje og detaljer.</p>
+
+      <div class="plans" id="planCards"></div>
+    </div>
+
+    <div class="card">
+      <div id="kpis" class="kpis"></div>
+      <div class="timeline">
+        <div class="timeline-rows" id="timeline"></div>
+      </div>
+      <div class="legend">
+        <span class="legend-item"><span class="legend-swatch" style="background:var(--seg-foreldrepenger)"></span> Foreldrepenger</span>
+        <span class="legend-item"><span class="legend-swatch" style="background:var(--seg-ferie)"></span> Ferie</span>
+        <span class="legend-item"><span class="legend-swatch" style="background:var(--seg-ulonnet)"></span> Ulønnet</span>
+        <span class="legend-item"><span class="legend-swatch" style="background:var(--seg-omsorg)"></span> Omsorgspermisjon</span>
+        <span class="legend-item"><span class="legend-swatch" style="background:var(--seg-arbeid)"></span> Jobb</span>
+      </div>
+    </div>
+
+    <div class="card explanation">
+      <h3>Hvorfor ser planen slik ut?</h3>
+      <ul class="explanation-list" id="explanationList"></ul>
+    </div>
+
+    <div class="card">
+      <h3>Segmenter</h3>
+      <div id="segmentTableWrap"></div>
+    </div>
+  </main>
+
+</div>
+
+<footer class="page-foot">
+  <p>
+    Motoren baserer seg på norske regler per april 2026: foreldrepengesystemets 49 uker (100 %) / 61 uker + 1 dag (80 %),
+    mødre- og fedrekvote på 15/19 uker, fellesperiode på 16 uker (100 %) / 20 uker + 1 dag (80 %), 3 uker før termin reservert mor,
+    og 6 obligatoriske uker etter fødsel. Ferieopptjening under foreldrepermisjon dekker inntil 12/15 uker til sammen for begge foreldre.
+    Kilder: <a href="https://www.nav.no/foreldrepenger" target="_blank">NAV foreldrepenger</a>,
+    <a href="https://www.nav.no/feriepenger" target="_blank">NAV feriepenger</a>,
+    <a href="https://lovdata.no/lov/1988-04-29-21" target="_blank">Ferieloven</a>.
+    Denne prototypen gir et forslag — sjekk alltid konkrete tall mot NAV og arbeidsgiver før du sender inn søknad.
+  </p>
+</footer>
+
+</div>
+
+<script>
+/* =========================================================
+   STATE
+   ========================================================= */
+const STATE = {
+  fodselsdato: null,        // Date
+  barnehagestart: null,     // Date
+  dekningsgrad: 100,        // 100 | 80
+  morLonn: 650000,
+  farLonn: 700000,
+  ferieUker: 5,             // 4.2 | 5
+  mal: 'balansert',         // 'minstGap' | 'mestPenger' | 'balansert'
+  activePlanKey: null       // 'minstGap' | 'mestPenger' | 'balansert'
+};
+
+/* =========================================================
+   KALENDER- OG HELLIGDAGSMODUL
+   ========================================================= */
+function addDays(d, n) {
+  const r = new Date(d);
+  r.setDate(r.getDate() + n);
+  return r;
+}
+function addWeeks(d, n) { return addDays(d, n * 7); }
+function diffDays(a, b) {
+  return Math.round((b - a) / (1000 * 60 * 60 * 24));
+}
+function fmtDate(d) {
+  if (!d) return '—';
+  const m = ['jan','feb','mar','apr','mai','jun','jul','aug','sep','okt','nov','des'];
+  return `${d.getDate()}. ${m[d.getMonth()]} ${d.getFullYear()}`;
+}
+function fmtShort(d) {
+  if (!d) return '—';
+  return `${d.getDate()}/${d.getMonth()+1}`;
+}
+function isoDate(d) {
+  if (!d) return '';
+  return d.toISOString().slice(0,10);
+}
+
+// Meeus/Jones/Butcher: 1. påskedag for gitt år
+function easterSunday(year) {
+  const a = year % 19;
+  const b = Math.floor(year / 100);
+  const c = year % 100;
+  const d = Math.floor(b / 4);
+  const e = b % 4;
+  const f = Math.floor((b + 8) / 25);
+  const g = Math.floor((b - f + 1) / 3);
+  const h = (19 * a + b - d - g + 15) % 30;
+  const i = Math.floor(c / 4);
+  const k = c % 4;
+  const l = (32 + 2 * e + 2 * i - h - k) % 7;
+  const m = Math.floor((a + 11 * h + 22 * l) / 451);
+  const month = Math.floor((h + l - 7 * m + 114) / 31);
+  const day = ((h + l - 7 * m + 114) % 31) + 1;
+  return new Date(year, month - 1, day);
+}
+
+function holidaysForYear(year) {
+  const easter = easterSunday(year);
+  return [
+    { date: new Date(year, 0, 1),   name: '1. nyttårsdag' },
+    { date: addDays(easter, -3),    name: 'Skjærtorsdag' },
+    { date: addDays(easter, -2),    name: 'Langfredag' },
+    { date: easter,                 name: '1. påskedag' },
+    { date: addDays(easter, 1),     name: '2. påskedag' },
+    { date: new Date(year, 4, 1),   name: 'Offentlig høytidsdag' },
+    { date: addDays(easter, 39),    name: 'Kristi himmelfartsdag' },
+    { date: new Date(year, 4, 17),  name: 'Grunnlovsdag' },
+    { date: addDays(easter, 49),    name: '1. pinsedag' },
+    { date: addDays(easter, 50),    name: '2. pinsedag' },
+    { date: new Date(year, 11, 25), name: '1. juledag' },
+    { date: new Date(year, 11, 26), name: '2. juledag' }
+  ];
+}
+
+function isHoliday(d) {
+  const yr = holidaysForYear(d.getFullYear());
+  return yr.some(h => h.date.toDateString() === d.toDateString());
+}
+function isWeekend(d) {
+  const day = d.getDay();
+  return day === 0 || day === 6;
+}
+function isStonadsdag(d) {
+  // Man-fre, helligdager teller ikke mot kvoten
+  return !isWeekend(d);
+}
+
+/* =========================================================
+   REGELKONFIGURASJON
+   ========================================================= */
+const RULES = {
+  100: {
+    label: '100 %',
+    totalStonadsdager: 245,
+    forTerminStonadsdager: 15,    // 3 uker × 5
+    morKvoteStonadsdager: 75,     // 15 uker × 5, inkl. 30 obligatoriske etter fødsel
+    morObligStonadsdager: 30,     // 6 uker etter fødsel som må være mor
+    farKvoteStonadsdager: 75,     // 15 uker × 5
+    fellesperiodStonadsdager: 80, // 16 uker × 5
+    feriepengeUker: 12
+  },
+  80: {
+    label: '80 %',
+    totalStonadsdager: 306,
+    forTerminStonadsdager: 15,
+    morKvoteStonadsdager: 95,     // 19 uker × 5
+    morObligStonadsdager: 30,
+    farKvoteStonadsdager: 95,
+    fellesperiodStonadsdager: 101, // 20 uker + 1 dag
+    feriepengeUker: 15
+  }
+};
+
+/* =========================================================
+   HJELPER: plasser stønadsdager i kalenderen
+   Tar en startdato og et antall stønadsdager, returnerer slutt-dato
+   (første dag etter siste stønadsdag). Helger hoppes over.
+   ========================================================= */
+function placeStonadsdager(start, antall) {
+  let d = new Date(start);
+  let brukt = 0;
+  // Skyv til neste stønadsdag hvis start ikke er det
+  while (!isStonadsdag(d)) d = addDays(d, 1);
+  while (brukt < antall) {
+    if (isStonadsdag(d)) brukt++;
+    if (brukt < antall) d = addDays(d, 1);
+  }
+  return { slutt: d, nesteDag: addDays(d, 1) };
+}
+
+/* =========================================================
+   MOTOR: generer plan for gitt mål
+   Input: STATE. Output: { segments, metrics, explanation, goalKey }
+   ========================================================= */
+function generatePlan(goalKey) {
+  if (!STATE.fodselsdato || !STATE.barnehagestart) return null;
+
+  const fd = STATE.fodselsdato;
+  const bs = STATE.barnehagestart;
+  const r  = RULES[STATE.dekningsgrad];
+
+  const segments = [];
+  const explanation = [];
+
+  // 1) Mors 3 uker før termin (15 stønadsdager)
+  const morForterminStart = addDays(fd, -21);
+  const ft = placeStonadsdager(morForterminStart, r.forTerminStonadsdager);
+  segments.push({
+    person: 'mor', type: 'foreldrepenger', subtype: 'Før termin (reservert mor)',
+    start: morForterminStart, slutt: ft.slutt, stonadsdager: r.forTerminStonadsdager
+  });
+  explanation.push({ tag: 'regel', text: `Mor starter 3 uker før termin (${fmtDate(morForterminStart)}). Disse ukene er reservert mor og faller bort om de ikke tas ut.` });
+
+  // 2) Mors kvote etter fødsel (hele kvoten sammenhengende)
+  // Starter dagen etter fødsel (første stønadsdag)
+  const morKvoteStart = addDays(fd, 1);
+  const mk = placeStonadsdager(morKvoteStart, r.morKvoteStonadsdager);
+  segments.push({
+    person: 'mor', type: 'foreldrepenger', subtype: `Mødrekvote (${r.morKvoteStonadsdager/5} uker)`,
+    start: morKvoteStart, slutt: mk.slutt, stonadsdager: r.morKvoteStonadsdager
+  });
+  explanation.push({ tag: 'regel', text: `De første 6 ukene etter fødsel er obligatoriske for mor; resten av mødrekvoten tas her sammenhengende for å forenkle.` });
+
+  // 3) Hvor mye av fellesperioden skal mor ta?
+  //    Default: mor tar hele fellesperioden, fedrekvote på slutten.
+  //    Ved goalKey vi justerer.
+  let morFellesDager = r.fellesperiodStonadsdager;
+  let farFellesDager = 0;
+
+  if (goalKey === 'balansert') {
+    // Del felles 50/50
+    morFellesDager = Math.floor(r.fellesperiodStonadsdager / 2);
+    farFellesDager = r.fellesperiodStonadsdager - morFellesDager;
+  }
+  // 'minstGap' og 'mestPenger': mor tar hele felles (lengst sammenhengende), far tar bare kvoten
+
+  let cursor = mk.nesteDag;
+
+  if (morFellesDager > 0) {
+    const mf = placeStonadsdager(cursor, morFellesDager);
+    segments.push({
+      person: 'mor', type: 'foreldrepenger', subtype: `Fellesperiode (${(morFellesDager/5).toFixed(1)} uker)`,
+      start: cursor, slutt: mf.slutt, stonadsdager: morFellesDager
+    });
+    cursor = mf.nesteDag;
+  }
+
+  // 4) Fars kvote + evt fellesperiode plasseres ideelt slik at fars siste dag = dagen før barnehagestart
+  const farTotalDager = r.farKvoteStonadsdager + farFellesDager;
+
+  // Beregn fars ideelle start: gå baklengs fra bs med farTotalDager stønadsdager
+  function placeStonadsdagerBackward(end, antall) {
+    // end er første dagen etter perioden (f.eks. barnehagestart)
+    let d = addDays(end, -1); // siste dag i perioden
+    let brukt = 0;
+    while (!isStonadsdag(d)) d = addDays(d, -1);
+    while (brukt < antall) {
+      if (isStonadsdag(d)) brukt++;
+      if (brukt < antall) d = addDays(d, -1);
+    }
+    return { start: d };
+  }
+
+  let farStart = null;
+  let morPauseDager = 0;
+  if (goalKey === 'minstGap') {
+    // Far slutter dagen før barnehagestart
+    const fb = placeStonadsdagerBackward(bs, farTotalDager);
+    farStart = fb.start;
+    // Hvis fars start er FØR mor er ferdig, la mor slutte der, og la far begynne direkte
+    if (farStart < cursor) farStart = cursor;
+    else morPauseDager = diffDays(cursor, farStart);
+  } else if (goalKey === 'mestPenger') {
+    // Far tar rett etter mor slutter (ingen avbrudd — maksimerer utbetalte dager uten ulønnet)
+    farStart = cursor;
+  } else {
+    // balansert: far tar rett etter mor
+    farStart = cursor;
+  }
+
+  // Omsorgspermisjon (2 uker) — plasser rundt fødsel
+  const omsStart = fd;
+  const omsSlutt = addDays(fd, 14);
+  segments.push({
+    person: 'far', type: 'omsorg', subtype: 'Omsorgspermisjon (aml. § 12-3)',
+    start: omsStart, slutt: omsSlutt, stonadsdager: 0
+  });
+  explanation.push({ tag: 'regel', text: `Far har rett til 2 ukers omsorgspermisjon ved fødsel. Lønn avhenger av arbeidsgiver.` });
+
+  // Plasser fars foreldrepenger
+  const farFpPlace = placeStonadsdager(farStart, farTotalDager);
+  segments.push({
+    person: 'far', type: 'foreldrepenger',
+    subtype: `Fedrekvote${farFellesDager ? ' + andel felles' : ''} (${((farTotalDager)/5).toFixed(1)} uker)`,
+    start: farStart, slutt: farFpPlace.slutt, stonadsdager: farTotalDager
+  });
+
+  // 5) Gap-analyse: sjekk avstand fra siste permisjonsdag til barnehagestart
+  const sistePermisjonDag = farFpPlace.slutt;
+  const gapDager = Math.max(0, diffDays(addDays(sistePermisjonDag, 1), bs));
+
+  // 6) Ferie/ulønnet for å tette gap (kun for mestPenger og balansert) eller etter barnehagestart (minstGap)
+  if (gapDager > 0) {
+    if (goalKey === 'minstGap') {
+      // Vi la far slutte rett før bs, så gap = 0 per definisjon (med mindre total periode er for kort)
+      // Hvis mor-perioden + far-perioden totalt ikke rekker: fyll start med ulønnet hos far eller mor
+      // (Dette skjer f.eks. ved januarbarn med bs ~20 mnd senere og 100 % dekning)
+    } else if (goalKey === 'mestPenger') {
+      // Ferie plasseres mot barnehagestart (ikke ulønnet)
+      const ferieVirkedager = Math.round(STATE.ferieUker * 5);
+      const ferieStart = addDays(bs, -(ferieVirkedager + Math.floor(ferieVirkedager/5)*2));
+      segments.push({
+        person: 'mor', type: 'ferie', subtype: `${STATE.ferieUker} uker ferie`,
+        start: ferieStart, slutt: addDays(bs, -1), virkedager: ferieVirkedager
+      });
+      explanation.push({ tag: 'valg', text: `Mor tar ferien rett før barnehagestart for å være hjemme gjennom tilvenningen.` });
+    } else {
+      // balansert: halv ferie hver
+      const fv = Math.round(STATE.ferieUker * 5 / 2);
+      // Mor fyller gapet etter far starter (kan ikke — mor er allerede ferdig. La oss si: vi dekker gapet med mors ferie)
+      segments.push({
+        person: 'mor', type: 'ferie', subtype: `${(STATE.ferieUker/2).toFixed(1)} uker ferie`,
+        start: addDays(bs, -(fv + Math.floor(fv/5)*2)),
+        slutt: addDays(bs, -1),
+        virkedager: fv
+      });
+      explanation.push({ tag: 'valg', text: `Ferien deles: halvparten til mor rett før barnehagestart, resten holdes igjen som buffer.` });
+    }
+  }
+
+  // 7) Hvis sistePermisjonDag < barnehagestart - ferie tilsvarende: må ha ulønnet
+  //    Grov beregning for mestPenger/balansert
+  let ulonnetDager = 0;
+  if (sistePermisjonDag < addDays(bs, -1)) {
+    const ferieUkerUsed = (goalKey === 'mestPenger') ? STATE.ferieUker :
+                         (goalKey === 'balansert')  ? STATE.ferieUker / 2 : 0;
+    const ferieVirkedagerUsed = Math.round(ferieUkerUsed * 5);
+    // kalenderdager ferien dekker (~5 virkedager per uke + 2 helg)
+    const ferieKalenderdager = Math.round(ferieUkerUsed * 7);
+    const gapEtterFerie = Math.max(0, gapDager - ferieKalenderdager);
+    if (gapEtterFerie > 0 && goalKey !== 'minstGap') {
+      // Ulønnet perioden legges rett etter siste permisjonsdag, hos mor
+      const ulonnetStart = addDays(sistePermisjonDag, 1);
+      const ulonnetSlutt = addDays(bs, -(ferieKalenderdager + 1));
+      if (ulonnetSlutt >= ulonnetStart) {
+        ulonnetDager = diffDays(ulonnetStart, addDays(ulonnetSlutt, 1));
+        segments.push({
+          person: 'mor', type: 'ulonnet', subtype: 'Ulønnet permisjon (aml. § 12-5)',
+          start: ulonnetStart, slutt: ulonnetSlutt, stonadsdager: 0
+        });
+        explanation.push({ tag: 'valg', text: `Gapet fylles med ulønnet permisjon (${ulonnetDager} dager). Hver forelder har rett til inntil ett års ulønnet etter foreldrepermisjon.` });
+      }
+    }
+  }
+
+  // 8) Harde sjekker og advarsler
+  // Sjekk om fars segment overskrider 3-årsgrensen
+  const treeAr = new Date(fd.getFullYear()+3, fd.getMonth(), fd.getDate());
+  if (farFpPlace.slutt > treeAr) {
+    explanation.push({ tag: 'risk', text: `Fars kvote slutter etter barnet fyller 3 år. Uker etter ${fmtDate(treeAr)} faller bort — fedrekvote må tas tidligere.` });
+  }
+
+  // Sjekk om barnehagestart er før fars kvote er ferdig
+  if (sistePermisjonDag >= bs) {
+    explanation.push({ tag: 'warn', text: `Fars permisjon slutter etter barnehagestart. Fars gjenværende uker kan utsettes (jobbes) og tas ut senere innen barnets 3-årsdag.` });
+  }
+
+  // Mor-pause ved minstGap-strategi
+  if (morPauseDager > 14) {
+    const uker = Math.round(morPauseDager / 7);
+    if (morPauseDager > 90) {
+      explanation.push({ tag: 'risk', text: `Mor må gå tilbake på jobb i ca. ${uker} uker før far tar fedrekvoten. For såpass langt opphold er det ofte mer realistisk å velge 80 %-dekning eller å dele fellesperioden — minstGap-strategien er egnet når avstanden er liten.` });
+    } else {
+      explanation.push({ tag: 'warn', text: `Mor går tilbake på jobb i ca. ${uker} uker mellom sine og fars uker (fars kvote plasseres inn mot barnehagestart). Dette er lovlig, men mange familier unngår det — vurder "Balansert" eller "Mest penger" som alternativ.` });
+    }
+  }
+
+  // Feriepenge-opptjening
+  const feriepengeKommentar = STATE.dekningsgrad === 80 ?
+    'Feriepenger av foreldrepenger dekker inntil 15 uker til sammen for begge foreldre.' :
+    'Feriepenger av foreldrepenger dekker inntil 12 uker til sammen for begge foreldre.';
+  explanation.push({ tag: 'regel', text: feriepengeKommentar });
+
+  // 9) Metrics
+  const metrics = computeMetrics(segments, { gapDager, ulonnetDager });
+
+  return { segments, metrics, explanation, goalKey };
+}
+
+/* =========================================================
+   METRIKK
+   ========================================================= */
+function computeMetrics(segments, extra) {
+  // gap dager allerede beregnet
+  const bs = STATE.barnehagestart;
+  const fd = STATE.fodselsdato;
+
+  // Siste permisjonsdag (blant mor og fars foreldrepenger)
+  const fpSegs = segments.filter(s => s.type === 'foreldrepenger');
+  const lastFp = fpSegs.reduce((max, s) => s.slutt > max ? s.slutt : max, new Date(0));
+
+  // Totale stønadsdager brukt
+  const dager = fpSegs.reduce((sum, s) => sum + (s.stonadsdager || 0), 0);
+
+  // Ubrukte dager av totalen
+  const r = RULES[STATE.dekningsgrad];
+  const ubrukte = Math.max(0, r.totalStonadsdager - dager);
+
+  // Tid hjemme (kalenderdager)
+  function hommeDays(person) {
+    let d = 0;
+    segments.filter(s => s.person === person && s.type !== 'arbeid').forEach(s => {
+      d += diffDays(s.start, s.slutt) + 1;
+    });
+    return d;
+  }
+  const morHjemme = hommeDays('mor');
+  const farHjemme = hommeDays('far');
+
+  // Overlapp (dager der begge er hjemme)
+  const morRanges = segments.filter(s => s.person === 'mor');
+  const farRanges = segments.filter(s => s.person === 'far');
+  let overlap = 0;
+  morRanges.forEach(m => {
+    farRanges.forEach(f => {
+      const oStart = m.start > f.start ? m.start : f.start;
+      const oSlutt = m.slutt < f.slutt ? m.slutt : f.slutt;
+      if (oStart <= oSlutt) overlap += diffDays(oStart, oSlutt) + 1;
+    });
+  });
+
+  // Netto inntekt (grov estimering)
+  // 6G 2026 estimert ~812 000. Foreldrepenger opptil 6G, 100% eller 80%.
+  const GRUNNBELOP_6 = 812000;
+  function foreldrepengerPerDag(aarlig, dekning) {
+    const cappet = Math.min(aarlig, GRUNNBELOP_6);
+    return (cappet * (dekning/100)) / 260; // 260 virkedager/år
+  }
+
+  const morStdPerDag = foreldrepengerPerDag(STATE.morLonn, STATE.dekningsgrad);
+  const farStdPerDag = foreldrepengerPerDag(STATE.farLonn, STATE.dekningsgrad);
+
+  let netto = 0;
+  segments.forEach(s => {
+    const perDagLonn = s.person === 'mor' ? STATE.morLonn/260 : STATE.farLonn/260;
+    const perDagFp   = s.person === 'mor' ? morStdPerDag : farStdPerDag;
+    const virkedager = Math.max(0, countVirkedager(s.start, s.slutt));
+    if (s.type === 'foreldrepenger') netto += perDagFp * virkedager;
+    else if (s.type === 'ferie')      netto += perDagLonn * virkedager;
+    else if (s.type === 'omsorg')     netto += perDagLonn * virkedager * 0.5; // antar delvis dekning
+    else if (s.type === 'ulonnet')    netto += 0;
+  });
+
+  return {
+    gapDager: extra.gapDager || 0,
+    ulonnetDager: extra.ulonnetDager || 0,
+    ubrukteStonadsdager: ubrukte,
+    morHjemmeDager: morHjemme,
+    farHjemmeDager: farHjemme,
+    beggeHjemmeDager: overlap,
+    nettoInntekt: Math.round(netto),
+    sisteFpDag: lastFp
+  };
+}
+
+function countVirkedager(start, slutt) {
+  let d = new Date(start);
+  let n = 0;
+  while (d <= slutt) {
+    if (!isWeekend(d)) n++;
+    d = addDays(d, 1);
+  }
+  return n;
+}
+
+/* =========================================================
+   RENDERING
+   ========================================================= */
+function render() {
+  if (!STATE.fodselsdato || !STATE.barnehagestart) {
+    document.getElementById('planCards').innerHTML = '<p style="color:var(--text-soft);">Fyll inn fødselsdato og barnehagestart for å se forslag.</p>';
+    document.getElementById('kpis').innerHTML = '';
+    document.getElementById('timeline').innerHTML = '';
+    document.getElementById('explanationList').innerHTML = '';
+    document.getElementById('segmentTableWrap').innerHTML = '';
+    return;
+  }
+
+  const plans = {
+    minstGap:   generatePlan('minstGap'),
+    mestPenger: generatePlan('mestPenger'),
+    balansert:  generatePlan('balansert')
+  };
+
+  if (!STATE.activePlanKey) STATE.activePlanKey = STATE.mal;
+
+  renderPlanCards(plans);
+  const active = plans[STATE.activePlanKey];
+  renderKpis(active.metrics);
+  renderTimeline(active);
+  renderExplanation(active.explanation);
+  renderSegmentTable(active.segments);
+}
+
+function renderPlanCards(plans) {
+  const titles = {
+    minstGap:   { t: 'Minst gap til barnehage', s: 'Fars kvote slutter rett før barnehagestart' },
+    mestPenger: { t: 'Mest penger',              s: 'Ingen ulønnet, ferie lagt mot slutten' },
+    balansert:  { t: 'Balansert',                s: 'Delt fellesperiode, delt ferie' }
+  };
+
+  const wrap = document.getElementById('planCards');
+  wrap.innerHTML = Object.keys(plans).map(k => {
+    const p = plans[k];
+    const m = p.metrics;
+    const active = STATE.activePlanKey === k ? 'active' : '';
+    return `
+      <button class="plan-card ${active}" data-plan="${k}">
+        <div class="plan-title">${titles[k].t}</div>
+        <div class="plan-sub">${titles[k].s}</div>
+        <div class="metric-row"><span>Gap</span><strong>${m.gapDager} d</strong></div>
+        <div class="metric-row"><span>Ulønnet</span><strong>${m.ulonnetDager} d</strong></div>
+        <div class="metric-row"><span>Netto</span><strong>${nf(m.nettoInntekt)} kr</strong></div>
+      </button>`;
+  }).join('');
+
+  wrap.querySelectorAll('.plan-card').forEach(el => {
+    el.addEventListener('click', () => {
+      STATE.activePlanKey = el.dataset.plan;
+      render();
+    });
+  });
+}
+
+function renderKpis(m) {
+  const k = [
+    { l: 'Gap til barnehage', v: m.gapDager, u: 'd' },
+    { l: 'Ulønnet',           v: m.ulonnetDager, u: 'd' },
+    { l: 'Begge hjemme',      v: m.beggeHjemmeDager, u: 'd' },
+    { l: 'Netto periode',     v: nf(m.nettoInntekt), u: 'kr' }
+  ];
+  document.getElementById('kpis').innerHTML = k.map(x => `
+    <div class="kpi">
+      <div class="label">${x.l}</div>
+      <div class="value">${x.v}<span class="unit">${x.u}</span></div>
+    </div>`).join('');
+}
+
+function renderTimeline(plan) {
+  const tl = document.getElementById('timeline');
+
+  // Tidsintervall: fra tidligste segment/start til barnehagestart + 14 dager buffer
+  const allStarts = plan.segments.map(s => s.start);
+  const allSlutt  = plan.segments.map(s => s.slutt);
+  const tStart = allStarts.reduce((a,b) => a<b?a:b);
+  const tSlutt = new Date(Math.max(
+    ...allSlutt.map(d=>d.getTime()),
+    addDays(STATE.barnehagestart, 7).getTime()
+  ));
+  const total = diffDays(tStart, tSlutt);
+
+  function pct(d) { return (diffDays(tStart, d) / total) * 100; }
+
+  const morSegs = plan.segments.filter(s => s.person === 'mor');
+  const farSegs = plan.segments.filter(s => s.person === 'far');
+
+  function segHtml(segs) {
+    return segs.map(s => {
+      const left = pct(s.start);
+      const width = ((diffDays(s.start, s.slutt)+1) / total) * 100;
+      const typeClass = s.type;
+      const title = `${s.subtype || s.type} · ${fmtDate(s.start)} – ${fmtDate(s.slutt)}`;
+      return `<div class="tl-segment ${typeClass}" style="left:${left}%;width:${width}%" title="${title}"></div>`;
+    }).join('');
+  }
+
+  // Månedsetiketter
+  const months = [];
+  let d = new Date(tStart.getFullYear(), tStart.getMonth(), 1);
+  const end = tSlutt;
+  while (d <= end) {
+    months.push(new Date(d));
+    d = new Date(d.getFullYear(), d.getMonth()+1, 1);
+  }
+  const monthHtml = months.map(mo => {
+    const p = pct(mo);
+    if (p < 0 || p > 100) return '';
+    const label = mo.toLocaleDateString('nb-NO', { month: 'short', year: '2-digit' });
+    return `<span class="tl-month" style="left:${p}%;">${label}</span>`;
+  }).join('');
+
+  const birthPct = pct(STATE.fodselsdato);
+  const bsPct    = pct(STATE.barnehagestart);
+
+  tl.innerHTML = `
+    <div class="tl-row">
+      <div class="tl-label">Mor</div>
+      <div class="tl-track">${segHtml(morSegs)}</div>
+    </div>
+    <div class="tl-row">
+      <div class="tl-label">Far</div>
+      <div class="tl-track">${segHtml(farSegs)}</div>
+    </div>
+    <div class="tl-row">
+      <div></div>
+      <div class="tl-markers">
+        <span class="tl-marker birth" style="left:${birthPct}%;">Fødsel ${fmtShort(STATE.fodselsdato)}</span>
+        <span class="tl-marker start" style="left:${bsPct}%;">Barnehage ${fmtShort(STATE.barnehagestart)}</span>
+      </div>
+    </div>
+    <div class="tl-row">
+      <div></div>
+      <div class="tl-months">${monthHtml}</div>
+    </div>
+  `;
+}
+
+function renderExplanation(list) {
+  document.getElementById('explanationList').innerHTML = list.map(item => {
+    const cls = item.tag === 'warn' ? 'tag warn' : item.tag === 'risk' ? 'tag risk' : 'tag';
+    return `<li><span class="${cls}">${item.tag}</span><span>${item.text}</span></li>`;
+  }).join('');
+}
+
+function renderSegmentTable(segs) {
+  const rows = segs.slice().sort((a,b) => a.start - b.start).map(s => {
+    const dager = diffDays(s.start, s.slutt)+1;
+    const virkedager = countVirkedager(s.start, s.slutt);
+    return `<tr>
+      <td class="person-${s.person}">${s.person === 'mor' ? 'Mor' : 'Far'}</td>
+      <td>${s.subtype || s.type}</td>
+      <td>${fmtDate(s.start)}</td>
+      <td>${fmtDate(s.slutt)}</td>
+      <td>${dager}</td>
+      <td>${virkedager}</td>
+      <td>${s.stonadsdager || '—'}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('segmentTableWrap').innerHTML = `
+    <table class="segments-table">
+      <thead>
+        <tr>
+          <th>Hvem</th><th>Type</th><th>Start</th><th>Slutt</th>
+          <th>Kalender­dager</th><th>Virke­dager</th><th>Stønads­dager</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  `;
+}
+
+function nf(n) {
+  if (n === null || n === undefined) return '—';
+  return new Intl.NumberFormat('nb-NO').format(n);
+}
+
+/* =========================================================
+   EVENT HANDLERS
+   ========================================================= */
+function bindInputs() {
+  const fd = document.getElementById('fodselsdato');
+  const bs = document.getElementById('barnehagestart');
+  const ml = document.getElementById('morLonn');
+  const fl = document.getElementById('farLonn');
+
+  fd.addEventListener('change', e => {
+    STATE.fodselsdato = e.target.value ? new Date(e.target.value) : null;
+    // Hvis barnehagestart ikke er satt manuelt, default til 15. aug året etter
+    if (STATE.fodselsdato && !bs.value) {
+      const def = new Date(STATE.fodselsdato.getFullYear()+1, 7, 15);
+      bs.value = isoDate(def);
+      STATE.barnehagestart = def;
+    }
+    render();
+  });
+  bs.addEventListener('change', e => {
+    STATE.barnehagestart = e.target.value ? new Date(e.target.value) : null;
+    render();
+  });
+  ml.addEventListener('input', e => { STATE.morLonn = +e.target.value || 0; render(); });
+  fl.addEventListener('input', e => { STATE.farLonn = +e.target.value || 0; render(); });
+
+  document.querySelectorAll('.pill-group button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const key = btn.dataset.key;
+      const val = btn.dataset.value;
+      if (!key) return;
+      btn.parentElement.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      if (key === 'dekningsgrad') STATE.dekningsgrad = +val;
+      else if (key === 'ferieUker') STATE.ferieUker = +val;
+      else if (key === 'mal') {
+        STATE.mal = val;
+        STATE.activePlanKey = val;
+      }
+      render();
+    });
+  });
+}
+
+function setDefaults() {
+  // Default: barn født 1. juli i år
+  const today = new Date();
+  const defaultBirth = new Date(today.getFullYear(), 6, 1);
+  document.getElementById('fodselsdato').value = isoDate(defaultBirth);
+  STATE.fodselsdato = defaultBirth;
+
+  const defaultBs = new Date(defaultBirth.getFullYear()+1, 7, 15);
+  document.getElementById('barnehagestart').value = isoDate(defaultBs);
+  STATE.barnehagestart = defaultBs;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  bindInputs();
+  setDefaults();
+  render();
+});
+</script>
+</body>
+</html>

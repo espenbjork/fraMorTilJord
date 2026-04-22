@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Barnehage-statusguide: Hvor er du, og hva kan du gjøre?</title>
+<style>
+  :root {
+    --color-green: #16a34a;
+    --color-green-bg: #dcfce7;
+    --color-green-border: #86efac;
+    --color-lime: #65a30d;
+    --color-lime-bg: #ecfccb;
+    --color-lime-border: #bef264;
+    --color-yellow: #ca8a04;
+    --color-yellow-bg: #fef9c3;
+    --color-yellow-border: #fde047;
+    --color-orange: #ea580c;
+    --color-orange-bg: #ffedd5;
+    --color-orange-border: #fdba74;
+    --color-red: #dc2626;
+    --color-red-bg: #fee2e2;
+    --color-red-border: #fca5a5;
+    --color-blue: #2563eb;
+    --color-blue-bg: #dbeafe;
+    --color-blue-border: #93c5fd;
+    --color-gray: #475569;
+    --color-gray-bg: #f1f5f9;
+    --color-gray-border: #cbd5e1;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.55;
+    color: #0f172a;
+    background: #f8fafc;
+    padding: 24px;
+    max-width: 1280px;
+    margin: 0 auto;
+  }
+  header {
+    margin-bottom: 32px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid #e2e8f0;
+  }
+  h1 { font-size: 28px; margin-bottom: 8px; }
+  h2 { font-size: 22px; margin: 32px 0 16px 0; color: #1e293b; }
+  .subtitle { color: #64748b; font-size: 15px; }
+
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin: 20px 0;
+    padding: 16px;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+  }
+  .swatch {
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    border: 1px solid;
+  }
+
+  /* Flow diagram */
+  .flow {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+    margin: 32px 0;
+    position: relative;
+  }
+  .flow-row {
+    display: contents;
+  }
+  .flow-node {
+    padding: 12px 10px;
+    border-radius: 10px;
+    border: 2px solid;
+    font-size: 13px;
+    text-align: center;
+    font-weight: 600;
+    position: relative;
+    cursor: pointer;
+    transition: transform 0.15s ease;
+  }
+  .flow-node:hover {
+    transform: translateY(-2px);
+  }
+  .flow-node .num {
+    display: inline-block;
+    width: 22px;
+    height: 22px;
+    line-height: 20px;
+    border-radius: 50%;
+    background: white;
+    border: 1.5px solid;
+    font-size: 12px;
+    margin-right: 6px;
+    font-weight: 700;
+  }
+  .flow-node .emoji {
+    font-size: 22px;
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  /* Color variants */
+  .status-prep { background: var(--color-gray-bg); border-color: var(--color-gray-border); color: var(--color-gray); }
+  .status-applied { background: var(--color-blue-bg); border-color: var(--color-blue-border); color: var(--color-blue); }
+  .status-waiting { background: var(--color-blue-bg); border-color: var(--color-blue-border); color: var(--color-blue); }
+  .status-optimal { background: var(--color-green-bg); border-color: var(--color-green-border); color: var(--color-green); }
+  .status-good { background: var(--color-lime-bg); border-color: var(--color-lime-border); color: var(--color-lime); }
+  .status-ok { background: var(--color-yellow-bg); border-color: var(--color-yellow-border); color: var(--color-yellow); }
+  .status-bad { background: var(--color-orange-bg); border-color: var(--color-orange-border); color: var(--color-orange); }
+  .status-none { background: var(--color-red-bg); border-color: var(--color-red-border); color: var(--color-red); }
+
+  .arrow-down {
+    text-align: center;
+    font-size: 24px;
+    color: #94a3b8;
+    margin: -4px 0;
+    grid-column: 1 / -1;
+  }
+
+  /* Detail cards */
+  .cards {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+    margin-top: 32px;
+  }
+  .card {
+    border: 2px solid;
+    border-radius: 14px;
+    padding: 20px;
+    background: white;
+  }
+  .card.status-prep { border-color: var(--color-gray-border); background: white; }
+  .card.status-applied { border-color: var(--color-blue-border); background: white; }
+  .card.status-waiting { border-color: var(--color-blue-border); background: white; }
+  .card.status-optimal { border-color: var(--color-green-border); background: white; }
+  .card.status-good { border-color: var(--color-lime-border); background: white; }
+  .card.status-ok { border-color: var(--color-yellow-border); background: white; }
+  .card.status-bad { border-color: var(--color-orange-border); background: white; }
+  .card.status-none { border-color: var(--color-red-border); background: white; }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #e2e8f0;
+    margin-bottom: 16px;
+  }
+  .card-header .badge {
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .badge.status-prep { background: var(--color-gray-bg); color: var(--color-gray); }
+  .badge.status-applied, .badge.status-waiting { background: var(--color-blue-bg); color: var(--color-blue); }
+  .badge.status-optimal { background: var(--color-green-bg); color: var(--color-green); }
+  .badge.status-good { background: var(--color-lime-bg); color: var(--color-lime); }
+  .badge.status-ok { background: var(--color-yellow-bg); color: var(--color-yellow); }
+  .badge.status-bad { background: var(--color-orange-bg); color: var(--color-orange); }
+  .badge.status-none { background: var(--color-red-bg); color: var(--color-red); }
+
+  .card-title {
+    font-size: 20px;
+    font-weight: 700;
+    flex: 1;
+  }
+  .card-emoji {
+    font-size: 36px;
+  }
+
+  .card-body {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+  @media (max-width: 720px) {
+    .card-body { grid-template-columns: 1fr; }
+    .flow { grid-template-columns: 1fr; }
+  }
+
+  .card-section h3 {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #64748b;
+    margin-bottom: 8px;
+  }
+  .card-section ul {
+    list-style: none;
+    padding-left: 0;
+  }
+  .card-section li {
+    padding: 6px 0 6px 24px;
+    position: relative;
+    font-size: 14px;
+  }
+  .card-section li::before {
+    content: "→";
+    position: absolute;
+    left: 0;
+    color: #94a3b8;
+    font-weight: 700;
+  }
+  .card-section li.check::before {
+    content: "✓";
+    color: var(--color-green);
+  }
+  .card-section li.warn::before {
+    content: "⚠";
+    color: var(--color-orange);
+  }
+  .card-section li.deadline::before {
+    content: "⏱";
+    color: var(--color-red);
+  }
+
+  .meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid #f1f5f9;
+  }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: #f1f5f9;
+    border-radius: 999px;
+    font-size: 12px;
+    color: #475569;
+  }
+
+  .mini-description {
+    background: #f8fafc;
+    padding: 14px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    color: #475569;
+    margin-bottom: 16px;
+    border-left: 3px solid #cbd5e1;
+  }
+
+  footer {
+    margin-top: 48px;
+    padding: 20px;
+    text-align: center;
+    color: #64748b;
+    font-size: 13px;
+  }
+
+  .tip-box {
+    background: linear-gradient(135deg, #dbeafe 0%, #e0e7ff 100%);
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin: 20px 0;
+    font-size: 14px;
+  }
+  .tip-box strong { color: #1e3a8a; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Barnehage-statusguide</h1>
+  <p class="subtitle">Hvor er du i prosessen — og hva kan du konkret gjøre akkurat nå? Utgangspunkt: familie uten prioriteringsrett (ingen særskilt § 18-rett, ingen søsken i barnehagen fra før).</p>
+</header>
+
+<div class="legend">
+  <div class="legend-item"><span class="swatch" style="background: var(--color-gray-bg); border-color: var(--color-gray-border);"></span> Forberedelse</div>
+  <div class="legend-item"><span class="swatch" style="background: var(--color-blue-bg); border-color: var(--color-blue-border);"></span> Søkt / venter</div>
+  <div class="legend-item"><span class="swatch" style="background: var(--color-green-bg); border-color: var(--color-green-border);"></span> Drømmeplassen</div>
+  <div class="legend-item"><span class="swatch" style="background: var(--color-lime-bg); border-color: var(--color-lime-border);"></span> Bra nok</div>
+  <div class="legend-item"><span class="swatch" style="background: var(--color-yellow-bg); border-color: var(--color-yellow-border);"></span> Akseptabelt</div>
+  <div class="legend-item"><span class="swatch" style="background: var(--color-orange-bg); border-color: var(--color-orange-border);"></span> Utilstrekkelig</div>
+  <div class="legend-item"><span class="swatch" style="background: var(--color-red-bg); border-color: var(--color-red-border);"></span> Ingen plass</div>
+</div>
+
+<h2>Flyt gjennom prosessen</h2>
+
+<div class="flow">
+  <a href="#s1" class="flow-node status-prep" style="grid-column: 1 / span 5;">
+    <span class="emoji">🔍</span>
+    1 · Forberedelse (før søknad)
+  </a>
+
+  <div class="arrow-down">↓</div>
+
+  <a href="#s2" class="flow-node status-applied" style="grid-column: 1 / span 5;">
+    <span class="emoji">📝</span>
+    2 · Søknad levert (1. mars–ca. april)
+  </a>
+
+  <div class="arrow-down">↓</div>
+
+  <a href="#s3" class="flow-node status-waiting" style="grid-column: 1 / span 5;">
+    <span class="emoji">⏳</span>
+    3 · Venter på tilbud
+  </a>
+
+  <div class="arrow-down">↓  Tilbud fordeler seg i ett av fem spor:  ↓</div>
+
+  <a href="#s4a" class="flow-node status-optimal"><span class="emoji">🎯</span>4a · 1. valg</a>
+  <a href="#s4b" class="flow-node status-good"><span class="emoji">👍</span>4b · 2.–3. valg</a>
+  <a href="#s4c" class="flow-node status-ok"><span class="emoji">🤷</span>4c · 4.–6. valg</a>
+  <a href="#s4d" class="flow-node status-bad"><span class="emoji">😕</span>4d · Annen bydel / «nødplass»</a>
+  <a href="#s4e" class="flow-node status-none"><span class="emoji">❌</span>4e · Ingen tilbud</a>
+
+  <div class="arrow-down" style="grid-column: 1 / -1;">↓</div>
+
+  <a href="#s5" class="flow-node status-waiting" style="grid-column: 1 / span 3;">
+    <span class="emoji">🔁</span>
+    5 · Har plass + står på venteliste for bedre
+  </a>
+  <a href="#s6" class="flow-node status-none" style="grid-column: 4 / span 2;">
+    <span class="emoji">🚨</span>
+    6 · Ingen plass, aktivt søk
+  </a>
+
+  <div class="arrow-down">↓</div>
+
+  <a href="#s7" class="flow-node status-optimal" style="grid-column: 1 / span 5;">
+    <span class="emoji">🏆</span>
+    7 · Mål: Optimal plass (via bytte eller tildeling)
+  </a>
+</div>
+
+<div class="tip-box">
+  <strong>Tommelfingerregel:</strong> Du bør aldri sitte passivt i noen status lenger enn to uker uten å sjekke status, kontakte styrer, eller vurdere neste trekk. Venteliste-plasser "beveger seg" stort sett august og januar — planlegg etter det.
+</div>
+
+<h2>Detaljert guide per status</h2>
+
+<div class="cards">
+
+  <!-- Status 1: Forberedelse -->
+  <div class="card status-prep" id="s1">
+    <div class="card-header">
+      <span class="card-emoji">🔍</span>
+      <div style="flex:1;">
+        <div class="card-title">1 · Forberedelse</div>
+        <div class="subtitle" style="margin-top:4px;">Før du sender søknaden — oktober til februar</div>
+      </div>
+      <span class="badge status-prep">Starter her</span>
+    </div>
+    <div class="mini-description">Den billigste investeringen i hele prosessen. Ta 3–5 timer her, så står du mye sterkere når søknadsfristen kommer.</div>
+    <div class="card-body">
+      <div class="card-section">
+        <h3>Hva du bør gjøre</h3>
+        <ul>
+          <li>Kartlegg <strong>alle</strong> barnehager innen 1–2 km (inkluder nabobydeler)</li>
+          <li>Sjekk hver på <a href="https://barnehagefakta.no">barnehagefakta.no</a>: bemanning, pedagogandel, foreldretilfredshet</li>
+          <li>Besøk 5–8 fysisk — ikke bare åpen dag, men be om rundtur</li>
+          <li>Spør styrer direkte: "Hvor mange står på venteliste? Hvor raskt beveger den seg?"</li>
+          <li class="check">Lag en rangert liste med 8–10 ønsker</li>
+        </ul>
+      </div>
+      <div class="card-section">
+        <h3>Vanlige feilgrep</h3>
+        <ul>
+          <li class="warn">Bare søker i egen bydel — du kan søke i hele Oslo</li>
+          <li class="warn">Glemmer private barnehager med egne opptakssystemer (Steiner, Montessori, menighet)</li>
+          <li class="warn">Ser bort fra familiebarnehager</li>
+          <li class="warn">Tror søknadstidspunkt før 1. mars gir fordel</li>
+        </ul>
+      </div>
+    </div>
+    <div class="meta-row">
+      <span class="chip">⏱ Tidsramme: 6–12 uker før frist</span>
+      <span class="chip">💰 Kostnad: gratis</span>
+      <span class="chip">🎯 Påvirkning: høy</span>
+    </div>
+  </div>
+
+  <!-- Status 2: Søknad levert -->
+  <div class="card status-applied" id="s2">
+    <div class="card-header">
+      <span class="card-emoji">📝</span>
+      <div style="flex:1;">
+        <div class="card-title">2 · Søknad levert</div>
+        <div class="subtitle" style="margin-top:4px;">1. mars–tidlig april</div>
+      </div>
+      <span class="badge status-applied">Pågår</span>
+    </div>
+    <div class="mini-description">Søknaden er inne i Oslos portal. Nå er det viktig at du ikke tror prosessen er over — det er den ikke.</div>
+    <div class="card-body">
+      <div class="card-section">
+        <h3>Hva du bør gjøre</h3>
+        <ul>
+          <li>Dobbeltsjekk at privat-søknader med <strong>eget</strong> opptak også er sendt separat</li>
+          <li>Noter deg en fristkalender: klagefrist er 3 uker fra tilbudet</li>
+          <li>Hold portalen oppdatert hvis adresse eller ønskelister bør endres</li>
+          <li>Forbered en kort e-post du kan sende styrer etter tilbud ("vi ønsker å stå på venteliste...")</li>
+        </ul>
+      </div>
+      <div class="card-section">
+        <h3>Viktige punkter</h3>
+        <ul>
+          <li class="check">Du får tilbud tidligst slutten av mars, senest april</li>
+          <li class="check">Rekkefølgen på ønskene dine betyr alt — du får aldri bedre enn det valget du satte høyest og ble matchet mot</li>
+          <li class="deadline">Klagefrist løper FRA tilbudsdatoen — ikke vent</li>
+        </ul>
+      </div>
+    </div>
+    <div class="meta-row">
+      <span class="chip">⏱ Varer 4–6 uker</span>
+      <span class="chip">🎯 Påvirkning nå: lav (ting ligger i algoritmen)</span>
+    </div>
+  </div>
+
+  <!-- Status 3: Venter -->
+  <div class="card status-waiting" id="s3">
+    <div class="card-header">
+      <span class="card-emoji">⏳</span>
+      <div style="flex:1;">
+        <div class="card-title">3 · Venter på tilbud</div>
+        <div class="subtitle" style="margin-top:4px;">Etter frist, før første utsending</div>
+      </div>
+      <span class="badge status-waiting">Pågår</span>
+    </div>
+    <div class="mini-description">Kortvarig fase hvor du egentlig ikke har mye handlingsrom. Men det er noe du kan gjøre.</div>
+    <div class="card-body">
+      <div class="card-section">
+        <h3>Hva du bør gjøre</h3>
+        <ul>
+          <li>Kontakt 2–3 "drømmebarnehager" per e-post: "Vi har søkt dere. Er det noe vi bør vite?"</li>
+          <li>Bli med i lokale foreldre-Facebookgrupper for din bydel/nabolag</li>
+          <li>Snakk med foreldre du kjenner som kan ha kunnskap om kommende plassbevegelser</li>
+        </ul>
+      </div>
+      <div class="card-section">
+        <h3>Viktige punkter</h3>
+        <ul>
+          <li class="check">Første tilbudsrunde: ca. 3–4 uker etter fristen</li>
+          <li class="check">Om du får tidlig signal fra styrer om venteliste — noter dette skriftlig</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Status 4a: Drømmeplass -->
+  <div class="card status-optimal" id="s4a">
+    <div class="card-header">
+      <span class="card-emoji">🎯</span>
+      <div style="flex:1;">
+        <div class="card-title">4a · Tilbud: Din 1. prioritet</div>
+        <div class="subtitle" style="margin-top:4px;">Drømmeplassen</div>
+      </div>
+      <span class="badge status-optimal">Optimalt</span>
+    </div>
+    <div class="mini-description">Du fikk den du ville ha. Gratulerer. Her er likevel tre ting verdt å gjøre.</div>
+    <div class="card-body">
+      <div class="card-section">
+        <h3>Hva du bør gjøre</h3>
+        <ul>
+          <li class="check">Svar ja innen svarfristen (gjerne dag 1 — ingen grunn til å vente)</li>
+          <li class="check">Les vedtektene for barnehagen grundig: åpningstid, kostpris, ferieregler</li>
+          <li class="check">Meld deg inn i SU og/eller foreldreråd når barnet har startet</li>
+        </ul>
+      </div>
+      <div class="card-section">
+        <h3>Husk</h3>
+        <ul>
+          <li>Du kan fortsatt flytte i fremtiden hvis familien endrer seg — men du har nå "ansiennitet" i systemet</li>
+          <li>Gi beskjed til 2.–3.-valgene dine at du ikke trenger plass lenger (høflig, og hjelper andre)</li>
+        </ul>
+      </div>
+    </div>
+    <div class="meta-row">
+      <span class="chip">🎉 Sluttstatus</span>
+      <span class="chip">Andel som havner her: ca. 60–75 % i Oslo</span>
+    </div>
+  </div>
+
+  <!-- Status 4b: 2.-3. valg -->
+  <div class="card status-good" id="s4b">
+    <div class="card-header">
+      <span class="card-emoji">👍</span>
+      <div style="flex:1;">
+        <div class="card-title">4b · Tilbud: 2. eller 3. prioritet</div>
+        <div class="subtitle" style="margin-top:4px;">Bra nok, men ikke førstevalget</div>
+      </div>
+      <span class="badge status-good">God løsning</span>
+    </div>
+    <div class="mini-description">Fullt funksjonelt utgangspunkt. Men du har fortsatt mulighet til å bevege deg mot drømmeplassen hvis du vil.</div>
+    <div class="card-body">
+      <div class="card-section">
+        <h3>Hva du bør gjøre</h3>
+        <ul>
+          <li class="check">Takk ja — en plass er alltid bedre enn ingen plass</li>
+          <li>Send e-post til 1.-valget ditt: "Vi har takket ja til [X], men ønsker fortsatt plass hos dere. Kan vi stå på venteliste?"</li>
+          <li>Be om <strong>skriftlig</strong> bekreftelse på ventelisteplassen</li>
+          <li>Vurder klage hvis du mistenker saksbehandlingsfeil (avstand, nærhet feil beregnet)</li>
+        </ul>
+      </div>
+      <div class="card-section">
+        <h3>Viktige punkter</h3>
+        <ul>
+          <li class="deadline">Klagefrist: 3 uker fra tilbudet</li>
+          <li class="check">Klage vinner sjelden på "uenighet" — må peke på saksbehandlingsfeil</li>
+          <li class="check">Du mister ingenting på å takke ja + stå på venteliste samtidig</li>
+        </ul>
+      </div>
+    </div>
+    <div class="meta-row">
+      <span class="chip">→ Neste: status 5 (venteliste-strategi)</span>
+    </div>
+  </div>
+
+  <!-- Status 4c: Midt på -->
+  <div class="card status-ok" id="s4c">
+    <div class="card-header">
+      <span class="card-emoji">🤷</span>
+      <div style="flex:1;">
+        <div class="card-title">4c · Tilbud: 4.–6. prioritet</div>
+        <div class="subtitle" style="margin-top:4px;">Funker praktisk, men er ikke der du ville vært</div>
+      </div>
+      <span class="badge status-ok">Akseptabelt</span>
+    </div>
+    <div class="mini-description">Typisk når flere nærliggende barnehager er presset. Du har en plass, men det er verdt å aktivt søke bytte.</div>
+    <div class="card-body">
+      <div class="card-section">
+        <h3>Hva du bør gjøre</h3>
+        <ul>
+          <li class="check">Takk ja — men <strong>ikke</strong> gi slipp på målet</li>
+          <li>Sett deg på venteliste i <strong>alle</strong> barnehagene over denne i prioriteringen din</li>
+          <li>Ring styrer i dine foretrukne barnehager hver 2. måned</li>
+          <li>Følg med på supplerende opptak gjennom året</li>
+          <li>Vurder om en familiebarnehage er et bedre mellomsteg</li>
+        </ul>
+      </div>
+      <div class="card-section">
+        <h3>Bevegelsesvinduer</h3>
+        <ul>
+          <li class="check"><strong>August:</strong> store overgangsdatoen — mange plasser blir ledige</li>
+          <li class="check"><strong>Januar:</strong> foreldre flytter, plasser åpner seg</li>
+          <li class="check">Midt i semester: mindre bevegelse, men ikke null</li>
+        </ul>
+      </div>
+    </div>
+    <div class="meta-row">
+      <span class="chip">→ Neste: status 5 (venteliste-strategi)</span>
+    </div>
+  </div>
+
+  <!-- Status 4d: Nødplass -->
+  <div class="card status-bad" id="s4d">
+    <div class="card-header">
+      <span class="card-emoji">😕</span>
+      <div style="flex:1;">
+        <div class="card-title">4d · Tilbud: Annen bydel / "nødplass"</div>
+        <div class="subtitle" style="margin-top:4px;">Kommunen må tilby en plass — og noen ganger er den langt unna</div>
+      </div>
+      <span class="badge status-bad">Utilstrekkelig</span>
+    </div>
+    <div class="mini-description">Dette skjer når ingen av dine ønsker hadde ledig plass. Oslo kommune har plikt til å skaffe deg en plass et sted — men stedet er ikke ditt valg.</div>
+    <div class="card-body">
+      <div class="card-section">
+        <h3>Hva du bør gjøre</h3>
+        <ul>
+          <li class="warn">Vurdér hardt: takker du ja, har du noe å bytte fra. Takker du nei, mister du retten i denne opptaksrunden</li>
+          <li class="check">Som hovedregel: takk ja — og start umiddelbart søkearbeid for bytte</li>
+          <li>Sett deg på venteliste i alle 8–10 opprinnelige ønsker</li>
+          <li>Vurder å klage hvis nærhet er feil beregnet</li>
+          <li>Søk på nytt i supplerende opptak — justér ønskelisten basert på hva du nå vet</li>
+        </ul>
+      </div>
+      <div class="card-section">
+        <h3>Viktige punkter</h3>
+        <ul>
+          <li class="deadline">Klagefrist: 3 uker</li>
+          <li class="warn">Reiselogistikken: er 45 min hver vei realistisk i hverdagen?</li>
+          <li class="check">Familiebarnehage kan være et bedre mellomsteg enn nødplass langt unna</li>
+          <li class="check">Sjekk om arbeidsgivers støtte/permisjon gir deg pustehull til å vente på bedre plass</li>
+        </ul>
+      </div>
+    </div>
+    <div class="meta-row">
+      <span class="chip">→ Neste: status 5 (venteliste) eller status 6 (takket nei)</span>
+    </div>
+  </div>
+
+  <!-- Status 4e: Ingen tilbud -->
+  <div class="card status-none" id="s4e">
+    <div class="card-header">
+      <span class="card-emoji">❌</span>
+      <div style="flex:1;">
+        <div class="card-title">4e · Ingen tilbud i hovedopptaket</div>
+        <div class="subtitle" style="margin-top:4px;">Sjelden hvis du har lovfestet rett — men det hender</div>
+      </div>
+      <span class="badge status-none">Kritisk</span>
+    </div>
+    <div class="mini-description">Hvis barnet har lovfestet rett til plass (fylt 1 år innen utgangen av august/sept/okt/nov), er dette en <strong>feil</strong>. Kommunen må skaffe plass.</div>
+    <div class="card-body">
+      <div class="card-section">
+        <h3>Gjør dette straks</h3>
+        <ul>
+          <li class="deadline"><strong>Klag innen 3 uker</strong> — formell klage til Oslo kommunes klageorgan (referanse: § 6 i forskrift om saksbehandlingsregler)</li>
+          <li>Ring Utdanningsetaten direkte (oslo.kommune.no/barnehage/kontakt)</li>
+          <li>Dokumenter alt skriftlig: hva du har søkt, når, og hva du har mottatt</li>
+          <li>Om barnet har lovfestet rett: henvis til barnehageloven § 16 eksplisitt i klagen</li>
+        </ul>
+      </div>
+      <div class="card-section">
+        <h3>Parallelt</h3>
+        <ul>
+          <li>Hold søknaden aktiv i supplerende opptak — endre ønsker basert på observert ledighet</li>
+          <li>Kontakt private direkte for ledighet (ring, ikke e-post først)</li>
+          <li>Sjekk familiebarnehager — kortere venteliste, kan få plass raskt</li>
+          <li>Følg lokale Facebook-grupper for "noen bytter plass" meldinger</li>
+        </ul>
+      </div>
+    </div>
+    <div class="meta-row">
+      <span class="chip">→ Neste: status 6</span>
+      <span class="chip">⚠ Eskalering: Statsforvalteren om klagen avslås</span>
+    </div>
+  </div>
+
+  <!-- Status 5: Har plass + venteliste -->
+  <div class="card status-waiting" id="s5">
+    <div class="card-header">
+      <span class="card-emoji">🔁</span>
+      <div style="flex:1;">
+        <div class="card-title">5 · Har plass + står på venteliste for bedre</div>
+        <div class="subtitle" style="margin-top:4px;">Den beste strategiske posisjonen</div>
+      </div>
+      <span class="badge status-waiting">Arbeider mot mål</span>
+    </div>
+    <div class="mini-description">Du har en fungerende plass, du har ro i hverdagen, og du jobber strategisk mot drømmeplassen. Dette er stedet du bruker mest tid på.</div>
+    <div class="card-body">
+      <div class="card-section">
+        <h3>Hva du bør gjøre rutinemessig</h3>
+        <ul>
+          <li class="check">Ring styrer i ønsket barnehage hver 8. uke: "Vi står fortsatt på venteliste, er det endringer?"</li>
+          <li class="check">Send kort e-post ved store sesonger (mai, august, januar) som holder deg synlig</li>
+          <li class="check">Oppdater Oslo-portalen hvis du justerer ønskelisten</li>
+          <li class="check">Hold øye med lokale foreldregrupper — "vi flytter X" er ofte første signal</li>
+        </ul>
+      </div>
+      <div class="card-section">
+        <h3>Hvis drømmeplassen åpner seg</h3>
+        <ul>
+          <li>Aksepter raskt — ikke mist plassen fordi du nøler</li>
+          <li>Si opp din nåværende plass skriftlig etter bekreftet ny plass</li>
+          <li>Sjekk oppsigelsesfrist i din nåværende barnehages vedtekter (typisk 1–3 måneder)</li>
+          <li>Vær høflig mot begge barnehagene — små miljøer, du kan møte dem igjen</li>
+        </ul>
+      </div>
+    </div>
+    <div class="meta-row">
+      <span class="chip">⏱ Kan vare 3–18 måneder</span>
+      <span class="chip">🎯 Høy sjanse for bevegelse i aug/jan</span>
+    </div>
+  </div>
+
+  <!-- Status 6: Ingen plass, aktivt søk -->
+  <div class="card status-none" id="s6">
+    <div class="card-header">
+      <span class="card-emoji">🚨</span>
+      <div style="flex:1;">
+        <div class="card-title">6 · Ingen plass, aktivt søk</div>
+        <div class="subtitle" style="margin-top:4px;">Du har takket nei til nødplass, eller står fortsatt uten</div>
+      </div>
+      <span class="badge status-none">Krisemodus</span>
+    </div>
+    <div class="mini-description">Krevende situasjon. Men håndterlig hvis du setter opp struktur og ikke gir opp.</div>
+    <div class="card-body">
+      <div class="card-section">
+        <h3>Ukentlig sjekkliste</h3>
+        <ul>
+          <li class="check">Sjekk Oslos ledige-plasser-side hver mandag</li>
+          <li class="check">Ring 3–5 barnehager per uke og spør om ledighet</li>
+          <li class="check">Sjekk lokale foreldregrupper for bytte-meldinger</li>
+          <li class="check">Oppdater og utvid søknadslisten din i portalen</li>
+        </ul>
+      </div>
+      <div class="card-section">
+        <h3>Parallelle løsninger</h3>
+        <ul>
+          <li>Privat dagmamma / praktikant som midlertidig løsning</li>
+          <li>Forlenget foreldrepermisjon hvis økonomien tillater</li>
+          <li>Åpen barnehage som sosial tilgang mens du venter</li>
+          <li>Besteforeldre, venner, nettverk — "barselsgruppen" fra før kan være gull</li>
+          <li class="warn">Arbeidsgiver: har de fleksibel arbeidsordning, deltid som overgang?</li>
+        </ul>
+      </div>
+    </div>
+    <div class="meta-row">
+      <span class="chip">→ Neste: tilbake til status 4 når tilbud kommer</span>
+      <span class="chip">📞 Utdanningsetaten Oslo: 02180</span>
+    </div>
+  </div>
+
+  <!-- Status 7: Mål -->
+  <div class="card status-optimal" id="s7">
+    <div class="card-header">
+      <span class="card-emoji">🏆</span>
+      <div style="flex:1;">
+        <div class="card-title">7 · Mål: Optimal plass</div>
+        <div class="subtitle" style="margin-top:4px;">Sluttstatus</div>
+      </div>
+      <span class="badge status-optimal">Nådd</span>
+    </div>
+    <div class="mini-description">Du har den plassen du egentlig ville ha — enten direkte i hovedopptak eller via bytte/venteliste senere.</div>
+    <div class="card-body">
+      <div class="card-section">
+        <h3>Hva nå</h3>
+        <ul>
+          <li class="check">Meld deg inn i foreldreråd og/eller SU — medvirkningsarbeid styrker barnehagen for alle</li>
+          <li class="check">Del erfaringen din med andre i nabolaget</li>
+          <li>Hvis du fant ineffektiviteter i prosessen: skriv til bydelsutvalget eller FUB</li>
+        </ul>
+      </div>
+      <div class="card-section">
+        <h3>Refleksjon</h3>
+        <ul>
+          <li>De fleste foreldre bruker 2–12 måneder på å komme hit om de ikke fikk 1. valg i hovedopptak</li>
+          <li>Den viktigste forskjellen fra passivitet er skriftlige ventelister og faste oppfølgingsrutiner</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  <p>Guide basert på Oslo kommunes opptaksregler per april 2026. Se også <a href="barnehage-oslo-analyse.md">hovedanalysen</a>, <a href="foreldrenes-taktikkguide.md">foreldrenes taktikkguide</a> og <a href="bydelstall-2025.md">bydelstallene</a>.</p>
+  <p style="margin-top:8px;">Kilder: <a href="https://www.oslo.kommune.no/barnehage/">Oslo kommune barnehage</a>, <a href="https://lovdata.no/lov/2005-06-17-64">barnehageloven</a>, <a href="https://www.fubhg.no/">FUB</a>.</p>
+</footer>
+
+</body>
+</html>

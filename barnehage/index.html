@@ -1,0 +1,2084 @@
+<!DOCTYPE html>
+<html lang="nb">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Din barnehagesøknad – status og neste steg</title>
+<style>
+  /* =========================================================
+     DESIGN TOKENS – Varm & jordnær (fra designsystem v0.1)
+     ========================================================= */
+  :root {
+    --bg: #F5EFE6;
+    --surface: #FEFAF4;
+    --surface-muted: #EFE6D8;
+    --border: #E3D7C3;
+    --border-strong: #CDBEA6;
+
+    --text: #2D2621;
+    --text-muted: #6B6055;
+    --text-soft: #8C8073;
+
+    --accent: #B85C3C;
+    --accent-hover: #9E4B2E;
+    --accent-soft: #F2DDD1;
+    --success: #6F8A4E;
+    --success-soft: #E1E8D4;
+    --warning: #C9913A;
+    --warning-soft: #F5E6CA;
+    --info: #5A7A8C;
+    --info-soft: #DDE6EC;
+    --danger: #A8443A;
+    --danger-soft: #F2D6D1;
+
+    --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    --font-serif: "Source Serif Pro", "Georgia", serif;
+
+    --fs-xs: 0.75rem;
+    --fs-sm: 0.875rem;
+    --fs-base: 1rem;
+    --fs-md: 1.125rem;
+    --fs-lg: 1.375rem;
+    --fs-xl: 1.75rem;
+    --fs-2xl: 2.25rem;
+    --fs-3xl: 3rem;
+
+    --lh-tight: 1.2;
+    --lh-normal: 1.55;
+    --lh-relaxed: 1.7;
+
+    --s-1: 4px;  --s-2: 8px;  --s-3: 12px;
+    --s-4: 16px; --s-5: 24px; --s-6: 32px;
+    --s-7: 48px; --s-8: 64px;
+
+    --r-sm: 6px; --r-md: 10px; --r-lg: 16px; --r-xl: 24px; --r-full: 999px;
+
+    --sh-sm: 0 1px 2px rgba(67, 46, 28, 0.04);
+    --sh-md: 0 2px 8px rgba(67, 46, 28, 0.06), 0 1px 2px rgba(67, 46, 28, 0.04);
+    --sh-lg: 0 8px 24px rgba(67, 46, 28, 0.08);
+
+    --focus: 0 0 0 3px rgba(184, 92, 60, 0.35);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-size: var(--fs-base);
+    line-height: var(--lh-normal);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  h1, h2, h3, h4 {
+    font-family: var(--font-serif);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    line-height: var(--lh-tight);
+    color: var(--text);
+    margin: 0 0 var(--s-3) 0;
+  }
+  h1 { font-size: var(--fs-3xl); letter-spacing: -0.02em; }
+  h2 { font-size: var(--fs-2xl); }
+  h3 { font-size: var(--fs-xl); }
+  h4 { font-size: var(--fs-lg); font-family: var(--font-sans); font-weight: 600; }
+  p { margin: 0 0 var(--s-4) 0; color: var(--text-muted); }
+  small { color: var(--text-soft); font-size: var(--fs-sm); }
+
+  /* Layout */
+  .page {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: var(--s-6) var(--s-5) var(--s-8);
+  }
+  .lead {
+    font-size: var(--fs-md);
+    color: var(--text-muted);
+    max-width: 60ch;
+    line-height: var(--lh-relaxed);
+  }
+  .row { display: flex; flex-wrap: wrap; gap: var(--s-3); align-items: center; }
+  .stack { display: flex; flex-direction: column; gap: var(--s-3); }
+  .section-label {
+    font-size: var(--fs-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-soft);
+    margin-bottom: var(--s-3);
+    font-weight: 600;
+  }
+
+  /* Topbar */
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--s-6);
+    padding-bottom: var(--s-4);
+    border-bottom: 1px solid var(--border);
+  }
+  .topbar .brand {
+    display: flex; align-items: center; gap: var(--s-3);
+  }
+  .topbar .brand .logo {
+    width: 36px; height: 36px; border-radius: var(--r-md);
+    background: var(--accent);
+    display: grid; place-items: center;
+    color: #FFF8F2;
+    font-family: var(--font-serif);
+    font-weight: 600;
+  }
+  .topbar .brand .title {
+    font-family: var(--font-serif);
+    font-size: var(--fs-md);
+    font-weight: 600;
+  }
+  .topbar .brand .sub {
+    font-size: var(--fs-xs);
+    color: var(--text-soft);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  /* Knapper */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    gap: var(--s-2);
+    font-family: var(--font-sans);
+    font-size: var(--fs-base); font-weight: 600;
+    line-height: 1; padding: 14px 22px;
+    border-radius: var(--r-md);
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: background-color 120ms ease, transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
+    text-decoration: none; min-height: 48px;
+    color: var(--text);
+  }
+  .btn:focus-visible { outline: none; box-shadow: var(--focus); }
+  .btn:active { transform: translateY(1px); }
+  .btn--primary { background: var(--accent); color: #FFF8F2; box-shadow: var(--sh-sm); }
+  .btn--primary:hover { background: var(--accent-hover); }
+  .btn--secondary { background: var(--surface); color: var(--text); border-color: var(--border-strong); }
+  .btn--secondary:hover { background: var(--surface-muted); border-color: var(--text-muted); }
+  .btn--ghost { background: transparent; color: var(--text); }
+  .btn--ghost:hover { background: var(--surface-muted); }
+  .btn--sm { padding: 10px 14px; font-size: var(--fs-sm); min-height: 36px; }
+  .btn[disabled] { opacity: 0.5; cursor: not-allowed; }
+
+  .link-ext {
+    display: inline-flex; align-items: center; gap: var(--s-2);
+    color: var(--accent); text-decoration: none;
+    font-weight: 600;
+    border-bottom: 1px solid rgba(184, 92, 60, 0.3);
+    padding-bottom: 2px;
+    transition: border-color 120ms ease, color 120ms ease;
+  }
+  .link-ext:hover { color: var(--accent-hover); border-bottom-color: var(--accent-hover); }
+  .icon { width: 18px; height: 18px; flex-shrink: 0; }
+  .icon-sm { width: 14px; height: 14px; flex-shrink: 0; }
+
+  /* Kort */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    padding: var(--s-5);
+    box-shadow: var(--sh-sm);
+  }
+
+  /* Badges */
+  .badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px; border-radius: var(--r-full);
+    font-size: var(--fs-xs); font-weight: 600; letter-spacing: 0.02em;
+    border: 1px solid transparent;
+  }
+  .badge--neutral { background: var(--surface-muted); color: var(--text-muted); border-color: var(--border); }
+  .badge--success { background: var(--success-soft); color: #3F5A26; border-color: #C7D4B1; }
+  .badge--warning { background: var(--warning-soft); color: #7A5512; border-color: #E8D1A0; }
+  .badge--info    { background: var(--info-soft); color: #2E4A5C; border-color: #BDCCD5; }
+  .badge--accent  { background: var(--accent-soft); color: #7C3418; border-color: #E5C3B3; }
+  .badge--danger  { background: var(--danger-soft); color: #7A2A22; border-color: #E0B8B2; }
+  .badge .dot { width: 6px; height: 6px; border-radius: var(--r-full); background: currentColor; }
+
+  /* Progress */
+  .progress {
+    height: 10px; background: var(--surface-muted);
+    border-radius: var(--r-full); overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .progress .bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), #D07A5A);
+    border-radius: var(--r-full);
+    transition: width 400ms ease;
+  }
+
+  /* Stepper */
+  .stepper {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    padding: var(--s-4) var(--s-3);
+    margin-bottom: var(--s-6);
+    box-shadow: var(--sh-sm);
+    overflow-x: auto;
+  }
+  .stepper-inner { display: flex; align-items: stretch; gap: var(--s-2); min-width: min-content; }
+  .stage-pill {
+    flex: 1 1 0; min-width: 120px;
+    display: flex; flex-direction: column;
+    align-items: flex-start; gap: 6px;
+    padding: var(--s-3);
+    border-radius: var(--r-md);
+    border: 1px solid transparent;
+    background: transparent;
+    cursor: pointer;
+    text-align: left;
+    transition: background-color 120ms ease, border-color 120ms ease;
+    font-family: inherit; color: inherit;
+  }
+  .stage-pill:hover { background: var(--surface-muted); }
+  .stage-pill:focus-visible { outline: none; box-shadow: var(--focus); }
+  .stage-pill.is-current { background: var(--accent-soft); border-color: #E5C3B3; }
+  .stage-pill.is-done { background: var(--success-soft); border-color: #C7D4B1; }
+  .stage-pill .pill-head {
+    display: flex; align-items: center; gap: 8px;
+    font-size: var(--fs-xs); font-weight: 600; color: var(--text-soft);
+    text-transform: uppercase; letter-spacing: 0.08em;
+  }
+  .stage-pill .num {
+    width: 22px; height: 22px; border-radius: var(--r-full);
+    background: var(--surface-muted); color: var(--text-muted);
+    display: grid; place-items: center;
+    font-weight: 700; font-size: 11px; flex-shrink: 0;
+  }
+  .stage-pill.is-done .num { background: var(--success); color: #FFF8F2; }
+  .stage-pill.is-current .num { background: var(--accent); color: #FFF8F2; box-shadow: 0 0 0 3px var(--accent-soft); }
+  .stage-pill .pill-title { font-weight: 600; color: var(--text); font-size: var(--fs-sm); line-height: 1.3; }
+  .stage-pill .pill-meta { font-size: var(--fs-xs); color: var(--text-soft); }
+
+  /* Fokus-kort */
+  .focus {
+    background: linear-gradient(180deg, #FBF5EB 0%, var(--surface) 100%);
+    border: 1px solid var(--border);
+    border-radius: var(--r-xl);
+    padding: var(--s-6);
+    box-shadow: var(--sh-md);
+    margin-bottom: var(--s-6);
+  }
+  .focus-header { display: flex; gap: var(--s-5); align-items: flex-start; margin-bottom: var(--s-5); }
+  .focus-emoji {
+    font-size: 2.5rem; line-height: 1;
+    padding: var(--s-3);
+    background: var(--accent-soft);
+    border-radius: var(--r-lg);
+    border: 1px solid #E5C3B3;
+    flex-shrink: 0;
+  }
+  .focus-title-area { flex: 1; min-width: 0; }
+  .focus-title-area h1 { font-size: var(--fs-2xl); margin-bottom: var(--s-2); }
+  .focus-title-area .focus-meta {
+    display: flex; flex-wrap: wrap; gap: var(--s-3);
+    color: var(--text-soft); font-size: var(--fs-sm);
+    margin-bottom: var(--s-2);
+  }
+  .focus-progress { margin-top: var(--s-4); }
+  .focus-progress small { display: block; margin-top: 6px; color: var(--text-muted); font-weight: 500; }
+
+  .focus-body {
+    display: grid;
+    grid-template-columns: 1.6fr 1fr;
+    gap: var(--s-5);
+    margin-top: var(--s-5);
+  }
+  @media (max-width: 820px) {
+    .focus-body { grid-template-columns: 1fr; }
+    .focus-header { flex-direction: column; gap: var(--s-3); }
+    .focus-emoji { font-size: 2rem; }
+  }
+
+  /* =========================================================
+     SJEKKLISTE – med prioritet (må/bør) + infoknapp
+     ========================================================= */
+  .checklist {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    padding: var(--s-3);
+    box-shadow: var(--sh-sm);
+  }
+  .checklist-group + .checklist-group { margin-top: var(--s-2); }
+  .checklist-group-label {
+    display: flex; align-items: center; gap: var(--s-2);
+    padding: var(--s-3) var(--s-4);
+    font-size: var(--fs-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-weight: 700;
+    color: var(--text-soft);
+  }
+  .checklist-group-label.must { color: #7C3418; }
+  .checklist-group-label .pill {
+    display: inline-flex; align-items: center;
+    padding: 2px 8px; border-radius: var(--r-full);
+    font-size: 10px;
+    background: var(--surface-muted);
+    border: 1px solid var(--border);
+  }
+  .checklist-group-label.must .pill {
+    background: var(--accent); color: #FFF8F2; border-color: var(--accent);
+  }
+  .checklist-group-label .count { color: var(--text-soft); font-weight: 500; margin-left: auto; }
+
+  .check-item {
+    display: flex; align-items: center;
+    gap: var(--s-2);
+    padding: var(--s-2) var(--s-3);
+    border-radius: var(--r-md);
+    transition: background-color 120ms ease;
+  }
+  .check-item + .check-item { border-top: 1px solid var(--border); margin-top: var(--s-1); padding-top: var(--s-3); }
+  .check-item:hover { background: var(--surface-muted); }
+
+  .check-item-toggle {
+    display: flex; align-items: flex-start; gap: var(--s-3);
+    flex: 1; min-width: 0;
+    cursor: pointer;
+    padding: var(--s-2);
+    border-radius: var(--r-sm);
+    user-select: none;
+  }
+  .check-item input[type="checkbox"] {
+    appearance: none; -webkit-appearance: none;
+    width: 26px; height: 26px;
+    border: 2px solid var(--border-strong);
+    border-radius: 8px;
+    background: var(--surface);
+    flex-shrink: 0; cursor: pointer;
+    margin-top: 2px;
+    display: grid; place-items: center;
+    transition: all 140ms ease;
+  }
+  .check-item input[type="checkbox"]:hover { border-color: var(--accent); }
+  .check-item input[type="checkbox"]:focus-visible { outline: none; box-shadow: var(--focus); }
+  .check-item input[type="checkbox"]:checked { background: var(--accent); border-color: var(--accent); }
+  .check-item input[type="checkbox"]:checked::after {
+    content: "";
+    width: 12px; height: 6px;
+    border-left: 2px solid #FFF8F2;
+    border-bottom: 2px solid #FFF8F2;
+    transform: rotate(-45deg) translate(1px, -1px);
+  }
+  .check-content {
+    flex: 1; min-width: 0;
+    display: flex; flex-direction: column; gap: 3px;
+  }
+  .check-title-row {
+    display: flex; align-items: center; gap: var(--s-2);
+    flex-wrap: wrap;
+  }
+  .check-title { font-weight: 600; color: var(--text); line-height: 1.4; }
+  .check-sub { color: var(--text-soft); font-size: var(--fs-sm); line-height: 1.45; }
+  .check-item input[type="checkbox"]:checked ~ .check-content .check-title {
+    color: var(--text-muted);
+    text-decoration: line-through;
+    text-decoration-color: var(--text-soft);
+  }
+  .check-side {
+    color: var(--text-soft); font-size: var(--fs-sm);
+    white-space: nowrap; flex-shrink: 0;
+  }
+
+  /* Prioritets-tagger */
+  .priority-tag {
+    display: inline-flex; align-items: center;
+    padding: 1px 7px;
+    border-radius: var(--r-full);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    line-height: 1.4;
+    flex-shrink: 0;
+  }
+  .priority-tag.must { background: var(--accent); color: #FFF8F2; }
+  .priority-tag.should {
+    background: var(--surface); color: var(--text-muted);
+    border: 1px solid var(--border);
+  }
+
+  /* Info-knapp */
+  .info-btn {
+    flex-shrink: 0;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    width: 30px; height: 30px;
+    border-radius: var(--r-full);
+    display: grid; place-items: center;
+    cursor: pointer;
+    transition: all 120ms ease;
+    font-family: var(--font-serif);
+    font-weight: 700;
+    font-size: 15px;
+    font-style: italic;
+  }
+  .info-btn:hover {
+    background: var(--accent-soft);
+    color: var(--accent);
+    border-color: #E5C3B3;
+  }
+  .info-btn:focus-visible { outline: none; box-shadow: var(--focus); }
+
+  /* Alert */
+  .alert {
+    display: flex; gap: var(--s-3);
+    padding: var(--s-4);
+    border-radius: var(--r-md);
+    border: 1px solid;
+    align-items: flex-start;
+  }
+  .alert--info { background: var(--info-soft); border-color: #BDCCD5; color: #2E4A5C; }
+  .alert--success { background: var(--success-soft); border-color: #C7D4B1; color: #3F5A26; }
+  .alert--warning { background: var(--warning-soft); border-color: #E8D1A0; color: #7A5512; }
+  .alert strong { display: block; margin-bottom: 2px; }
+
+  /* Side-kort */
+  .side-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    padding: var(--s-5);
+    box-shadow: var(--sh-sm);
+  }
+  .side-card h4 { margin-bottom: var(--s-3); display: flex; align-items: center; gap: 8px; }
+  .side-card .links { display: flex; flex-direction: column; gap: var(--s-2); }
+  .side-card .links a { font-size: var(--fs-sm); }
+
+  /* Tool-kort – barnehagefinner + permisjon */
+  .tool-card {
+    background: var(--accent-soft);
+    border: 1px solid #E5C3B3;
+    border-radius: var(--r-lg);
+    padding: var(--s-5);
+    box-shadow: var(--sh-sm);
+    position: relative;
+    overflow: hidden;
+  }
+  .tool-card::before {
+    content: ""; position: absolute; top: -40px; right: -40px;
+    width: 120px; height: 120px;
+    background: radial-gradient(circle, rgba(184, 92, 60, 0.15), transparent 70%);
+    border-radius: 50%;
+  }
+  .tool-card h4 {
+    color: #7C3418;
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: var(--s-2);
+    position: relative;
+  }
+  .tool-card p {
+    color: var(--text-muted); font-size: var(--fs-sm);
+    margin-bottom: var(--s-4); position: relative;
+  }
+  .tool-card .tool-actions { display: flex; flex-wrap: wrap; gap: var(--s-2); position: relative; }
+  .tool-card .btn { cursor: pointer; }
+
+  /* Focus-footer */
+  .focus-footer {
+    display: flex; justify-content: space-between; align-items: center;
+    gap: var(--s-4); margin-top: var(--s-6);
+    padding-top: var(--s-5); border-top: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+  .focus-footer .nav-hint { color: var(--text-muted); font-size: var(--fs-sm); }
+  .focus-footer .nav-actions { display: flex; gap: var(--s-3); flex-wrap: wrap; }
+
+  /* Outcome-grid */
+  .outcome-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: var(--s-3);
+    margin-bottom: var(--s-5);
+  }
+  .outcome-option {
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-radius: var(--r-md);
+    padding: var(--s-4);
+    cursor: pointer;
+    transition: all 140ms ease;
+    display: flex; flex-direction: column; gap: 6px;
+    text-align: left;
+    font-family: inherit; color: inherit;
+  }
+  .outcome-option:hover { border-color: var(--border-strong); background: var(--surface-muted); }
+  .outcome-option:focus-visible { outline: none; box-shadow: var(--focus); }
+  .outcome-option.is-selected {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+    box-shadow: var(--sh-sm);
+  }
+  .outcome-option .oemoji { font-size: 1.5rem; line-height: 1; }
+  .outcome-option .otitle { font-weight: 600; font-size: var(--fs-sm); }
+  .outcome-option .odesc { font-size: var(--fs-xs); color: var(--text-soft); line-height: 1.4; }
+
+  .reset-area {
+    text-align: center; margin-top: var(--s-6);
+    padding-top: var(--s-5); border-top: 1px solid var(--border);
+  }
+  .reset-area small { display: block; margin-top: var(--s-2); }
+
+  .description {
+    background: var(--surface-muted);
+    border-left: 3px solid var(--accent);
+    padding: var(--s-3) var(--s-4);
+    border-radius: var(--r-sm);
+    margin-bottom: var(--s-4);
+    color: var(--text-muted);
+    font-size: var(--fs-sm);
+    line-height: var(--lh-relaxed);
+  }
+
+  .stage-complete {
+    background: var(--success-soft);
+    border: 1px solid #C7D4B1;
+    color: #3F5A26;
+    border-radius: var(--r-md);
+    padding: var(--s-3) var(--s-4);
+    font-size: var(--fs-sm);
+    font-weight: 600;
+    display: flex; align-items: center; gap: 8px;
+    margin-top: var(--s-4);
+  }
+
+  /* =========================================================
+     MODAL – generisk + iframe-variant
+     ========================================================= */
+  .modal-backdrop {
+    position: fixed; inset: 0;
+    background: rgba(45, 38, 33, 0.55);
+    display: none;
+    align-items: center; justify-content: center;
+    z-index: 1000;
+    padding: var(--s-4);
+    backdrop-filter: blur(3px);
+  }
+  .modal-backdrop.is-open { display: flex; }
+
+  .modal-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    max-width: 680px; width: 100%;
+    max-height: 90vh;
+    overflow: hidden;
+    box-shadow: var(--sh-lg);
+    position: relative;
+    display: flex; flex-direction: column;
+    animation: modalIn 200ms ease;
+  }
+  @keyframes modalIn {
+    from { opacity: 0; transform: translateY(8px) scale(0.99); }
+    to   { opacity: 1; transform: none; }
+  }
+  .modal-box.is-wide { max-width: 1200px; height: 90vh; }
+
+  .modal-header {
+    padding: var(--s-5) var(--s-6);
+    border-bottom: 1px solid var(--border);
+    background: var(--surface-muted);
+    display: flex; align-items: center; gap: var(--s-4);
+    flex-shrink: 0;
+  }
+  .modal-header h3 {
+    margin: 0; flex: 1;
+    font-size: var(--fs-lg);
+  }
+  .modal-header .priority-tag { flex-shrink: 0; }
+  .modal-header-actions { display: flex; gap: var(--s-2); align-items: center; flex-shrink: 0; }
+
+  .modal-close {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    width: 34px; height: 34px;
+    border-radius: var(--r-sm);
+    cursor: pointer;
+    display: grid; place-items: center;
+    transition: all 120ms ease;
+    flex-shrink: 0;
+  }
+  .modal-close:hover { background: var(--accent-soft); color: var(--accent); border-color: #E5C3B3; }
+  .modal-close:focus-visible { outline: none; box-shadow: var(--focus); }
+
+  .modal-body {
+    padding: var(--s-5) var(--s-6) var(--s-6);
+    overflow-y: auto;
+    flex: 1;
+  }
+  .modal-body > :first-child { margin-top: 0; }
+  .modal-body h4 {
+    font-size: var(--fs-sm);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-soft);
+    margin: var(--s-5) 0 var(--s-3);
+    font-weight: 700;
+  }
+  .modal-body h4:first-child { margin-top: 0; }
+  .modal-body p { color: var(--text); line-height: var(--lh-relaxed); }
+  .modal-body ol, .modal-body ul {
+    padding-left: 22px; margin: 0 0 var(--s-4);
+    color: var(--text); line-height: var(--lh-relaxed);
+  }
+  .modal-body ol li, .modal-body ul li { margin-bottom: var(--s-2); }
+  .modal-sub { color: var(--text-muted); margin-top: 4px; }
+
+  .modal-meta {
+    display: flex; flex-wrap: wrap; gap: var(--s-3);
+    font-size: var(--fs-sm); color: var(--text-soft);
+    margin-top: var(--s-3);
+  }
+  .modal-meta span { display: inline-flex; align-items: center; gap: 6px; }
+
+  /* Iframe wrapper */
+  .modal-iframe-wrap { flex: 1; overflow: hidden; display: flex; }
+  .modal-iframe {
+    flex: 1;
+    width: 100%;
+    border: none;
+    background: var(--bg);
+    min-height: 400px;
+  }
+
+  /* Template med copy-knapp */
+  .template {
+    background: var(--surface-muted);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    padding: var(--s-4);
+    margin: var(--s-3) 0 var(--s-4);
+    font-size: var(--fs-sm);
+    line-height: 1.6;
+    color: var(--text);
+    white-space: pre-wrap;
+    font-family: var(--font-sans);
+    position: relative;
+  }
+  .template-head {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: var(--s-2);
+    padding-bottom: var(--s-2);
+    border-bottom: 1px solid var(--border);
+  }
+  .template-label {
+    font-size: var(--fs-xs);
+    font-weight: 700;
+    color: var(--text-soft);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+  .copy-btn {
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    color: var(--text);
+    padding: 6px 12px;
+    border-radius: var(--r-sm);
+    font-family: inherit;
+    font-size: var(--fs-xs);
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex; align-items: center; gap: 6px;
+    transition: all 120ms ease;
+  }
+  .copy-btn:hover { background: var(--surface-muted); border-color: var(--text-muted); }
+  .copy-btn.is-copied {
+    background: var(--success-soft);
+    border-color: #C7D4B1;
+    color: #3F5A26;
+  }
+  .template-body { white-space: pre-wrap; }
+
+  .modal-tip {
+    background: var(--warning-soft);
+    border: 1px solid #E8D1A0;
+    border-radius: var(--r-md);
+    padding: var(--s-3) var(--s-4);
+    color: #7A5512;
+    font-size: var(--fs-sm);
+    margin: var(--s-3) 0;
+    display: flex; gap: var(--s-3); align-items: flex-start;
+  }
+  .modal-tip.is-info {
+    background: var(--info-soft); border-color: #BDCCD5; color: #2E4A5C;
+  }
+  .modal-tip strong { display: block; margin-bottom: 2px; }
+
+  .modal-links { display: flex; flex-direction: column; gap: var(--s-2); margin-top: var(--s-2); }
+
+  /* body scroll-lock når modal er åpen */
+  body.modal-open { overflow: hidden; }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <!-- Topbar -->
+  <div class="topbar">
+    <div class="brand">
+      <div class="logo">B</div>
+      <div>
+        <div class="title">Barnehageopptak</div>
+        <div class="sub">Oslo · 2026</div>
+      </div>
+    </div>
+    <div class="row">
+      <span id="overall-badge" class="badge badge--accent"><span class="dot"></span><span id="overall-badge-text">Stadium 1 av 7</span></span>
+    </div>
+  </div>
+
+  <!-- Stepper -->
+  <nav class="stepper" aria-label="Alle stadier i opptaket">
+    <div id="stepper-inner" class="stepper-inner"></div>
+  </nav>
+
+  <!-- Fokus-kort -->
+  <main id="focus" class="focus" aria-live="polite"></main>
+
+  <!-- Nullstilling -->
+  <div class="reset-area">
+    <button id="reset-btn" class="btn btn--ghost btn--sm">
+      <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+      Nullstill fremdrift
+    </button>
+    <small>Fremdriften lagres lokalt i nettleseren din. Ingenting sendes noe sted.</small>
+  </div>
+
+</div>
+
+<!-- Detail-modal -->
+<div id="detail-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="detail-modal-title">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span id="detail-priority"></span>
+      <h3 id="detail-modal-title">Tittel</h3>
+      <button class="modal-close" data-close="detail-modal" aria-label="Lukk">
+        <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+      </button>
+    </div>
+    <div class="modal-body" id="detail-modal-body"></div>
+  </div>
+</div>
+
+<!-- Barnehagefinner-modal (iframe) -->
+<div id="finder-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-label="Barnehagefinneren">
+  <div class="modal-box is-wide">
+    <div class="modal-header">
+      <h3>🗺️ Barnehagefinneren</h3>
+      <div class="modal-header-actions">
+        <a class="btn btn--secondary btn--sm" href="barnehagefinner.html" target="_blank" rel="noopener">
+          Åpne i ny fane
+          <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7"/><path d="M8 7h9v9"/></svg>
+        </a>
+        <button class="modal-close" data-close="finder-modal" aria-label="Lukk">
+          <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="modal-iframe-wrap">
+      <iframe id="finder-iframe" class="modal-iframe" title="Barnehagefinneren"></iframe>
+    </div>
+  </div>
+</div>
+
+<!-- Permisjonsplanlegger-modal (iframe) -->
+<div id="planner-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-label="Permisjonsplanlegger">
+  <div class="modal-box is-wide">
+    <div class="modal-header">
+      <h3>📅 Permisjons- og ferieplanlegger</h3>
+      <div class="modal-header-actions">
+        <a class="btn btn--secondary btn--sm" href="permisjonsplanlegger.html" target="_blank" rel="noopener">
+          Åpne i ny fane
+          <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7"/><path d="M8 7h9v9"/></svg>
+        </a>
+        <button class="modal-close" data-close="planner-modal" aria-label="Lukk">
+          <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="modal-iframe-wrap">
+      <iframe id="planner-iframe" class="modal-iframe" title="Permisjonsplanlegger"></iframe>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   DATA – stadier, steg, prioritet (må/bør) og detaljer
+   ========================================================= */
+
+/* Gjenbrukbare meldings-maler */
+const TPL_VENTELISTE_FORSTE_VALG =
+`Hei,
+
+Vi har nettopp takket ja til plass i [navn på barnehage vi fikk], men [barnets navn] står fortsatt høyest på ønskelista til dere. Vi ønsker derfor å stå på venteliste.
+
+Kan dere bekrefte skriftlig at [barnets navn] er ført opp på ventelista, og gjerne si noe om hvor raskt ventelista pleier å bevege seg?
+
+Vennlig hilsen
+[ditt navn]
+[telefon] · [e-post]
+[barnets navn], født [fødselsdato]`;
+
+const TPL_KONTAKT_FOER_TILDELING =
+`Hei,
+
+Vi har [barnets navn], født [fødselsdato], på søknaden til Oslo kommunes hovedopptak, og har satt dere som et av våre ønsker.
+
+Vi er veldig interessert i barnehagen, og lurer på om det er noe vi bør vite om opptaket, ventelista eller oppstart til høsten? Er det åpen dag eller omvisning vi kan bli med på?
+
+Vennlig hilsen
+[ditt navn]
+[telefon] · [e-post]`;
+
+const TPL_MAI_AUG_JAN =
+`Hei,
+
+Bare en kort melding: [barnets navn] står fortsatt på ventelista hos dere, og vi er veldig interessert i plass så fort noe åpner seg.
+
+Er det endringer vi burde vite om?
+
+Vennlig hilsen
+[ditt navn]`;
+
+const TPL_KLAGE_IKKE_PLASS =
+`Til Oslo kommune, Utdanningsetaten – klageinstans
+
+Klage på vedtak om tildeling av barnehageplass
+
+Vedr.: [barnets navn], født [fødselsdato]
+Søknadsnummer: [ref. nummer fra portalen]
+
+Vi klager med dette på vedtak datert [dato] der vårt barn ikke ble tildelt barnehageplass i hovedopptaket.
+
+Barnet har lovfestet rett til plass, jf. barnehageloven § 16, da barnet fylte / fyller ett år innen utgangen av november [år] og søknad ble levert innen fristen 1. mars.
+
+Vi ber om at saken behandles på nytt og at det tildeles plass i tråd med lovens krav. Subsidiært ber vi om begrunnelse for vedtaket.
+
+Vedlagt følger kopi av søknad, vedtak og eventuell annen relevant dokumentasjon.
+
+Klagefrist: 3 uker fra mottatt vedtak, jf. forvaltningsloven § 29.
+
+Vennlig hilsen
+[ditt navn]
+[adresse]
+[telefon] · [e-post]`;
+
+const TPL_KLAGE_FEIL_NAERHET =
+`Til Oslo kommune, Utdanningsetaten – klageinstans
+
+Klage på vedtak om tildeling av barnehageplass – feil i nærhetsberegning
+
+Vedr.: [barnets navn], født [fødselsdato]
+Søknadsnummer: [ref. nummer fra portalen]
+Tildelt plass: [navn på barnehage]
+
+Vi klager på vedtak datert [dato]. Etter våre beregninger er nærheten fra vår adresse [din adresse] til [ønsket barnehage] kortere enn til den tildelte plassen. Dette fremkommer av [f.eks. kart eller reisetidsberegning].
+
+Vi ber om at nærhetsberegningen gjennomgås på nytt.
+
+Klagefrist: 3 uker fra mottatt vedtak, jf. forvaltningsloven § 29.
+
+Vennlig hilsen
+[ditt navn]
+[adresse]
+[telefon] · [e-post]`;
+
+const TPL_RING_STYRER_SCRIPT =
+`Ringescript – 2–3 minutter
+
+"Hei, det er [ditt navn]. [Barnets navn], født [fødselsdato], står på ventelista hos dere.
+Jeg ringer bare for å sjekke status – har det vært endringer siste par månedene?
+Er det noe vi kan gjøre for å være bedre posisjonert?"
+
+Noter svarene rett i portalen eller egen loggbok:
+– Dato for samtalen
+– Hvem du snakket med
+– Hva du fikk vite (antall foran deg, forventet bevegelse, etc.)`;
+
+const TPL_RING_LEDIGHET =
+`Ringescript – sjekk ledighet
+
+"Hei, det er [ditt navn]. Vi står uten plass og er i aktivt søk.
+Har dere noen ledige plasser akkurat nå, eller vet dere om noen som slutter den neste måneden?"
+
+Hvis nei – spør:
+"Hvor mange står på ventelista, og kan vi bli lagt til?"`;
+
+const STAGES = [
+  {
+    id: 1, slug: 'forberedelse', title: 'Forberedelse', short: 'Forberedelse',
+    emoji: '🔍', meta: 'Oktober–februar · før søknad',
+    description: 'Den billigste investeringen i hele prosessen. Bruk 3–5 timer her, så står du mye sterkere når søknadsfristen kommer.',
+    steps: [
+      { id: 'p1', priority: 'should', title: 'Kartlegg alle barnehager innen 1–2 km',
+        sub: 'Inkluder også nabobydeler – du kan søke i hele Oslo', time: '30 min',
+        detail: {
+          why: 'De fleste foreldre kjenner bare 2–3 barnehager i umiddelbar nærhet. Den som kartlegger i bredden ender med 8–10 reelle alternativer, ikke 3.',
+          how: [
+            'Bruk barnehagefinneren til å se alle barnehager innenfor gangavstand fra hjem og jobb.',
+            'Marker de du vil besøke fysisk – både kommunale og private.',
+            'Ikke filtrer for tidlig. Familiebarnehager og nabobydeler er ofte lettere å komme inn i.'
+          ],
+          tool: 'finder'
+        }
+      },
+      { id: 'p2', priority: 'should', title: 'Sjekk hver barnehage på barnehagefakta.no',
+        sub: 'Bemanning, pedagogandel, foreldretilfredshet', time: '45 min',
+        detail: {
+          why: 'Barnehagefakta viser de objektive målene: antall barn per voksen, andel pedagoger og foreldrenes tilfredshet. Dette er det nærmeste en uavhengig vurdering du får.',
+          how: [
+            'Se etter barn per ansatt: lavere er bedre. Norm: maks 6 barn per voksen for 3–5 år.',
+            'Sjekk pedagogandel: lovens krav er minst 43% barnehagelærere.',
+            'Les foreldreundersøkelsen – den publiseres bare som kommunesnitt, men utslag på enkeltspørsmål kan si noe.'
+          ],
+          links: [{ title: 'barnehagefakta.no', url: 'https://barnehagefakta.no' }]
+        }
+      },
+      { id: 'p3', priority: 'should', title: 'Besøk 5–8 fysisk – be om rundtur',
+        sub: 'Ikke bare åpen dag – se hverdagen', time: '2–3 dager',
+        detail: {
+          why: 'Åpen dag er iscenesatt. En hverdagsrundtur viser hvordan de voksne faktisk er med barna.',
+          how: [
+            'Ring styrer og be om et besøk på formiddagen i ukas gang.',
+            'Se om barna er engasjerte, og om de voksne er tilgjengelige.',
+            'Spør konkret: hvor mange barn per voksen, bemanning ved sykdom, hvordan de håndterer konflikter.'
+          ]
+        }
+      },
+      { id: 'p4', priority: 'should', title: 'Snakk med styrer om venteliste',
+        sub: '"Hvor mange står? Hvor raskt beveger den seg?"', time: '15 min/sted',
+        detail: {
+          why: 'Styrer har ofte oversikt over hvor mange som faktisk får plass gjennom ventelista, og hvor raskt den beveger seg. Denne informasjonen finnes ikke offentlig.',
+          how: [
+            'Still spørsmålene direkte – det er helt greit, det er ikke noe hemmelig.',
+            'Noter svarene. Du vil glemme detaljene etter fjerde barnehage.',
+            'Spør også om "søsken-regel" eller andre prioriteringer som påvirker ventelista.'
+          ]
+        }
+      },
+      { id: 'p5', priority: 'must', title: 'Lag en rangert liste med 8–10 ønsker',
+        sub: 'Private med eget opptak må du søke separat', time: '30 min',
+        detail: {
+          why: 'Rekkefølgen styrer tildelingsalgoritmen. Du får aldri en barnehage høyere enn den du satte høyest og ble matchet mot. En liste på 8–10 er ikke overflødig – det er forsikring mot å havne uten tilbud.',
+          how: [
+            'Ranger primært etter det viktigste for dere: pedagogikk, nærhet til hjem, åpningstid.',
+            'Legg inn minst 8, helst 10. Også de du er usikker på.',
+            'Sjekk at private med eget opptak er på separat liste – de må søkes direkte hos barnehagen.',
+            'Lagre lista i Oslo-portalen innen 1. mars kl. 23:59.'
+          ],
+          tip: { type: 'warning', title: 'Ikke kort ned lista for å virke "sikker"', body: 'Du står ikke sterkere ved å velge færre. Du står svakere. Flere ønsker gir flere muligheter.' },
+          links: [{ title: 'Søk plass i Oslo', url: 'https://www.oslo.kommune.no/barnehage/soke-bytte-eller-si-opp-barnehageplass/' }]
+        }
+      }
+    ],
+    links: [
+      { title: 'Oslo kommune – søk barnehageplass', url: 'https://www.oslo.kommune.no/barnehage/soke-bytte-eller-si-opp-barnehageplass/' },
+      { title: 'Barnehagefakta.no (alle barnehager)', url: 'https://barnehagefakta.no' },
+      { title: 'Finn barnehager i nærheten', url: 'https://www.oslo.kommune.no/barnehage/finn-barnehage/' }
+    ],
+    tools: ['finder', 'permisjon'],
+    tip: {
+      type: 'info',
+      title: 'Tommelfingerregel',
+      body: 'Du bør ha en liste på 8–10 ønsker – ikke 3. Rekkefølgen er det som avgjør, men lengden gir deg sikkerhet.'
+    }
+  },
+
+  {
+    id: 2, slug: 'soknad-levert', title: 'Søknad levert', short: 'Søknad levert',
+    emoji: '📝', meta: '1. mars–tidlig april',
+    description: 'Søknaden er inne i Oslos portal. Nå er det viktig at du ikke tror prosessen er over – det er den ikke.',
+    steps: [
+      { id: 's1', priority: 'must', title: 'Dobbeltsjekk at private med eget opptak er sendt separat',
+        sub: 'Steiner, Montessori, menighet har ofte egne systemer', time: '20 min',
+        detail: {
+          why: 'Oslo-portalen dekker bare kommunale og noen private. Hvis du har satt opp en Steiner- eller Montessoribarnehage som "ønske", har det ingen effekt uten egen søknad direkte til barnehagen.',
+          how: [
+            'Gå gjennom lista di igjen. Noter hvilke som er private med eget opptak.',
+            'Sjekk hver enkelt barnehages nettside for søknadsskjema.',
+            'Send søknad, og be om skriftlig bekreftelse på at de har mottatt den.'
+          ],
+          tip: { type: 'warning', title: 'Fristen kan være annerledes', body: 'Noen private har søknadsfrist tidligere enn kommunens 1. mars – sjekk i god tid.' }
+        }
+      },
+      { id: 's2', priority: 'must', title: 'Noter fristkalenderen din',
+        sub: 'Tilbud kommer mars–april. Klagefrist er 3 uker fra tilbudsdato', time: '5 min',
+        detail: {
+          why: 'Klagefristen løper fra tilbudsdatoen – ikke fra når du åpnet brevet. Mister du fristen, mister du også en viktig mulighet til å få plassen gjort om.',
+          how: [
+            'Legg "Tilbudsfrist" og "Klagefrist = tilbud + 3 uker" i kalenderen.',
+            'Sett varsel 2 dager før klagefrist går ut.',
+            'Ha adresse og søknadsnummer klart – du trenger det hvis du må klage raskt.'
+          ]
+        }
+      },
+      { id: 's3', priority: 'must', title: 'Oppdater portalen ved endringer',
+        sub: 'Adresse eller ønsker kan justeres før tildeling', time: '10 min',
+        detail: {
+          why: 'Adresse brukes i nærhetsberegningen. Er den feil, kan du bli prioritert til feil barnehage – eller miste en du egentlig burde fått.',
+          how: [
+            'Logg inn i Oslo-portalen og sjekk at adresse, ønsker og kontaktinfo stemmer.',
+            'Det er mulig å justere ønskelista helt frem til tildeling.'
+          ]
+        }
+      },
+      { id: 's4', priority: 'should', title: 'Forbered e-post til styrer for venteliste',
+        sub: 'Kort mal du kan sende dag 1 etter tilbud', time: '15 min',
+        detail: {
+          why: 'Dag 1 etter tilbud er avgjørende. Hvis du får 2.–3. valget, vil du sende forespørsel om venteliste til 1. valget samme dag. Ha malen klar.',
+          how: [
+            'Tilpass malen under med barnets navn, fødselsdato og kontaktinfo.',
+            'Lagre den som utkast i e-posten din.',
+            'Når tilbudet kommer, bytt inn navnet på barnehagen og send.'
+          ],
+          template: { label: 'E-postmal til 1. valget for venteliste', body: TPL_VENTELISTE_FORSTE_VALG }
+        }
+      }
+    ],
+    links: [
+      { title: 'Søkeportal – Oslo kommune', url: 'https://www.oslo.kommune.no/barnehage/soke-bytte-eller-si-opp-barnehageplass/' },
+      { title: 'Opptaksregler i Oslo', url: 'https://www.oslo.kommune.no/barnehage/opptaksregler-i-oslo/' },
+      { title: 'Barnehageloven § 16', url: 'https://lovdata.no/lov/2005-06-17-64/§16' }
+    ],
+    tip: {
+      type: 'warning',
+      title: 'Viktig om rekkefølge',
+      body: 'Du får aldri bedre enn det valget du satte høyest og ble matchet mot. Tenk over rekkefølgen – også der du er usikker.'
+    }
+  },
+
+  {
+    id: 3, slug: 'venter', title: 'Venter på tilbud', short: 'Venter',
+    emoji: '⏳', meta: 'Etter frist – før første utsending',
+    description: 'Kortvarig fase hvor du egentlig ikke har mye handlingsrom. Men det er noe du kan gjøre.',
+    steps: [
+      { id: 'v1', priority: 'should', title: 'Kontakt 2–3 drømmebarnehager per e-post',
+        sub: '"Vi har søkt dere. Er det noe vi bør vite?"', time: '30 min',
+        detail: {
+          why: 'En myk påminnelse om at dere finnes. Styrere husker foreldre som har tatt kontakt – det kan gjøre en liten forskjell når ventelister beveger seg.',
+          how: [
+            'Send kort, vennlig e-post. Ikke press.',
+            'Spør om det er åpen dag, omvisning eller annen informasjon dere bør vite.',
+            'Svaret gir deg også en fornemmelse av hvor responsiv styrer er.'
+          ],
+          template: { label: 'E-postmal – "Vi har søkt dere"', body: TPL_KONTAKT_FOER_TILDELING }
+        }
+      },
+      { id: 'v2', priority: 'should', title: 'Bli med i lokale foreldregrupper',
+        sub: 'Facebook-grupper for bydelen – her dukker bytter og varsler opp først', time: '10 min',
+        detail: {
+          why: 'Foreldregrupper på Facebook er uformelle, men raske. "Vi flytter i juli" varsles ofte her før det er registrert noe sted.',
+          how: [
+            'Søk opp "[bydelsnavn] foreldre" eller "[bydelsnavn] barnehage" på Facebook.',
+            'Slå på varsler for gruppen.',
+            'Ikke spør i store gruppen om enkeltplasser – bygg relasjon først.'
+          ]
+        }
+      },
+      { id: 'v3', priority: 'should', title: 'Snakk med foreldre i nabolaget',
+        sub: 'De vet ofte hvem som slutter eller flytter', time: 'Uformelt',
+        detail: {
+          why: 'Barnehageplasser finner ikke bare sine nye foreldre via systemer. Noen ganger er det en muntlig "vi flytter, vil du ha plassen vår?" som løser saken.',
+          how: [
+            'Nevn hva du leter etter til folk du møter i parken eller på jobb.',
+            'Spør konkret: "Vet du om noen barnehager i bydelen som har bevegelse?"',
+            'Et bytte er ofte raskere enn en tildeling.'
+          ]
+        }
+      }
+    ],
+    links: [
+      { title: 'Søkeportal – status og ønsker', url: 'https://www.oslo.kommune.no/barnehage/soke-bytte-eller-si-opp-barnehageplass/' },
+      { title: 'Kontakt Utdanningsetaten', url: 'https://www.oslo.kommune.no/etater-foretak-og-ombud/utdanningsetaten/kontakt/' }
+    ],
+    tools: ['permisjon'],
+    tip: { type: 'info', title: 'Hva du venter på', body: 'Første tilbudsrunde kommer ca. 3–4 uker etter fristen. De fleste får tilbud innen utgangen av april.' }
+  },
+
+  {
+    id: 4, slug: 'tilbud', title: 'Tilbud mottatt', short: 'Tilbud',
+    emoji: '📬', meta: 'Første utsending',
+    description: 'Du har fått et tilbud. Hva som er smart å gjøre nå avhenger av hvilket tilbud du fikk.',
+    outcomes: [
+      {
+        id: '4a', emoji: '🎯', title: '1. valget ditt', desc: 'Drømmeplassen – gratulerer',
+        tone: 'success',
+        body: 'Du fikk den du ville ha. Gratulerer. Likevel finnes det tre ting verdt å gjøre.',
+        steps: [
+          { id: 't1a', priority: 'must', title: 'Svar ja innen svarfristen',
+            sub: 'Gjerne dag 1 – ingen grunn til å vente', time: '5 min',
+            detail: {
+              why: 'Fristen er absolutt. Svarer du for sent, mister du tilbudet – og plassen gis videre.',
+              how: [
+                'Logg inn i Oslo-portalen og bekreft.',
+                'Sjekk at du får kvittering. Skjermbilde eller epost – lagre det.'
+              ]
+            }
+          },
+          { id: 't2a', priority: 'should', title: 'Les vedtektene grundig',
+            sub: 'Åpningstid, kostpris, ferieregler', time: '20 min',
+            detail: {
+              why: 'Vedtektene er bindende avtale. Detaljer om åpningstid, sommerstenging og oppsigelsesfrist varierer betydelig mellom barnehager.',
+              how: [
+                'Åpningstid: kommer du og partner rundt med denne i hverdagen?',
+                'Ferieregler: hvor mange uker sommerstengt? Er det plantdager dere må ta fri?',
+                'Oppsigelsesfrist: 1–3 mnd. Kan bli avgjørende hvis du vil bytte senere.'
+              ]
+            }
+          },
+          { id: 't3a', priority: 'should', title: 'Gi beskjed til øvrige valg at du takker nei',
+            sub: 'Høflig – og hjelper andre i køen', time: '10 min',
+            detail: {
+              why: 'Din "nei-takk" flyttes videre til neste på ventelista. Rask tilbakemelding = gavepakke til noen andre foreldre.',
+              how: [
+                'En kort e-post holder. "Takk for tilbudet, vi har takket ja et annet sted."',
+                'Bruk samme tråd hvis dere hadde kontakt før.'
+              ]
+            }
+          }
+        ]
+      },
+      {
+        id: '4b', emoji: '👍', title: '2.–3. valget', desc: 'Bra nok, men ikke drømmen',
+        tone: 'good',
+        body: 'Fullt funksjonelt utgangspunkt. Du har fortsatt mulighet til å bevege deg mot drømmeplassen.',
+        steps: [
+          { id: 't1b', priority: 'must', title: 'Takk ja',
+            sub: 'En plass er alltid bedre enn ingen plass', time: '5 min',
+            detail: {
+              why: 'Takker du nei, mister du retten i denne opptaksrunden og kan ende helt uten plass. Takker du ja, har du en plass å bytte fra.',
+              how: [
+                'Bekreft i portalen så fort som mulig.',
+                'Dette stenger ikke for venteliste andre steder – det gir deg trygghet.'
+              ]
+            }
+          },
+          { id: 't2b', priority: 'should', title: 'Send e-post til 1. valget',
+            sub: '"Vi har takket ja til X, men ønsker fortsatt plass. Kan vi stå på venteliste?"', time: '15 min',
+            detail: {
+              why: 'Denne e-posten er den viktigste du sender i hele prosessen. Den gir deg et reelt ankerpunkt hos drømmeplassen – og en vei videre.',
+              how: [
+                'Send samme dag som du får tilbudet. Ikke vent.',
+                'Vær konkret og kort. Be om skriftlig bekreftelse.',
+                'Lagre svaret. Det er din dokumentasjon.'
+              ],
+              template: { label: 'E-postmal – be om venteliste hos 1. valget', body: TPL_VENTELISTE_FORSTE_VALG }
+            }
+          },
+          { id: 't3b', priority: 'should', title: 'Be om skriftlig bekreftelse på ventelisteplass',
+            sub: 'Dokumentasjon du kan vise frem senere', time: '5 min',
+            detail: {
+              why: 'Muntlige ventelister er ubrukelige når du skal argumentere for plass senere. Skriftlig bekreftelse er forskjellen mellom reell posisjon og en vennlig vilje.',
+              how: [
+                'Hvis styrer bare svarer "ja, dere står på lista", svar: "Kan dere bekrefte dette i e-post, med dato for når vi ble lagt til?"',
+                'Lagre svaret i en egen mappe.'
+              ]
+            }
+          },
+          { id: 't4b', priority: 'should', title: 'Vurder klage ved mistanke om saksbehandlingsfeil',
+            sub: 'Klagefrist er 3 uker fra tilbudsdatoen', time: '30 min',
+            detail: {
+              why: 'Klager vinner sjelden på "uenighet", men ofte på faktafeil – f.eks. feil beregnet avstand eller oversett søskenrett.',
+              how: [
+                'Sjekk om nærhetsberegningen stemmer med faktisk gangavstand.',
+                'Sjekk om eventuell søskenrett eller særskilt rett (§ 18) er vurdert.',
+                'Klage sendes skriftlig. Bruk malen under som utgangspunkt.'
+              ],
+              template: { label: 'Mal – klage på nærhetsberegning', body: TPL_KLAGE_FEIL_NAERHET },
+              links: [{ title: 'Klage på vedtak – Oslo kommune', url: 'https://www.oslo.kommune.no/barnehage/klage-pa-vedtak-om-barnehageplass/' }]
+            }
+          }
+        ]
+      },
+      {
+        id: '4c', emoji: '🤷', title: '4.–6. valget', desc: 'Funker praktisk, er ikke der du ville',
+        tone: 'ok',
+        body: 'Typisk når flere nærliggende barnehager er presset. Du har en plass, men det er verdt å aktivt søke bytte.',
+        steps: [
+          { id: 't1c', priority: 'must', title: 'Takk ja – men ikke gi slipp på målet',
+            sub: 'En plass gir deg handlingsrom til å bytte', time: '5 min',
+            detail: {
+              why: 'Ved å takke ja beholder du en trygg base å jobbe fra. En nei-takk midt i opptaket er høy risiko med liten oppside.',
+              how: ['Bekreft i portalen.', 'Start byttearbeidet parallelt – samme dag, samme uke.']
+            }
+          },
+          { id: 't2c', priority: 'should', title: 'Sett deg på venteliste i alle høyere prioriteringer',
+            sub: 'Skriftlig, i hver enkelt barnehage', time: '1–2 timer',
+            detail: {
+              why: 'Ventelisteplass i flere barnehager øker sjansen for å få bytte innen ett år. Én skriftlig bekreftelse er verdt ti muntlige.',
+              how: [
+                'Kontakt hver barnehage (nummer 1 til den du fikk) separat.',
+                'Bruk malen under og tilpass per barnehage.',
+                'Be om skriftlig bekreftelse fra hver enkelt.'
+              ],
+              template: { label: 'E-postmal – be om venteliste', body: TPL_VENTELISTE_FORSTE_VALG }
+            }
+          },
+          { id: 't3c', priority: 'should', title: 'Ring styrer i foretrukne barnehager hver 2. måned',
+            sub: 'Holder deg synlig og toppen av bunken', time: 'Løpende',
+            detail: {
+              why: 'Ventelister er ikke automatiserte systemer. Styrer husker foreldre som er aktive uten å være plagsomme.',
+              how: [
+                'Legg fast dag i kalenderen, f.eks. første mandag annenhver måned.',
+                'Bruk ringescriptet under.',
+                'Loggfør svarene – over tid kan du se hvilke barnehager som faktisk har bevegelse.'
+              ],
+              template: { label: 'Ringescript – 2 min', body: TPL_RING_STYRER_SCRIPT }
+            }
+          },
+          { id: 't4c', priority: 'should', title: 'Følg med på supplerende opptak',
+            sub: 'Plasser åpner seg særlig august og januar', time: 'Løpende',
+            detail: {
+              why: 'Supplerende opptak er ikke like synlig annonsert som hovedopptak. Men det er her de fleste reelle bytter skjer.',
+              how: [
+                'Sjekk Oslo-portalen månedlig for ledige plasser.',
+                'Oppdater ønskelista hvis dine preferanser har endret seg.'
+              ],
+              links: [{ title: 'Supplerende opptak', url: 'https://www.oslo.kommune.no/barnehage/soke-bytte-eller-si-opp-barnehageplass/' }]
+            }
+          }
+        ]
+      },
+      {
+        id: '4d', emoji: '😕', title: 'Annen bydel / nødplass', desc: 'Langt unna det du søkte',
+        tone: 'bad',
+        body: 'Kommunen har plikt til å skaffe plass – men stedet er ikke ditt valg. Likevel: takk ja som hovedregel, og start bytte-arbeid umiddelbart.',
+        steps: [
+          { id: 't1d', priority: 'should', title: 'Vurder reiselogistikk realistisk',
+            sub: 'Er 45 min hver vei overkommelig i hverdagen?', time: '15 min',
+            detail: {
+              why: 'En nødplass som ikke fungerer i praksis gir to valg: takke nei (risikabelt) eller slite i månedsvis. Vurder hardt før du takker ja.',
+              how: [
+                'Test reisevei i rush-tid – bil, kollektiv og gange.',
+                'Tenk gjennom hva som skjer når barnet er sykt og skal hentes.',
+                'Er det realistisk at én forelder kan hente på kort varsel?'
+              ]
+            }
+          },
+          { id: 't2d', priority: 'must', title: 'Takk ja og start bytte-arbeidet',
+            sub: 'Takker du nei mister du retten i denne runden', time: '5 min',
+            detail: {
+              why: 'Barnehageloven gir rett til plass – én gang per opptaksrunde. Takker du nei, venter du til neste supplerende opptak.',
+              how: [
+                'Bekreft i portalen.',
+                'Samme dag: begynn å sende ventelisteforespørsler til dine opprinnelige ønsker.'
+              ]
+            }
+          },
+          { id: 't3d', priority: 'should', title: 'Sett deg på venteliste i alle 8–10 opprinnelige ønsker',
+            sub: 'Be om skriftlig bekreftelse fra hver', time: '2 timer',
+            detail: {
+              why: 'Fra en nødplass er ventelister din eneste vei hjem. Jo flere du er på, jo raskere beveger det seg.',
+              how: ['Bruk malen under, tilpass per barnehage.', 'Lagre alle skriftlige bekreftelser i egen mappe.'],
+              template: { label: 'E-postmal – venteliste', body: TPL_VENTELISTE_FORSTE_VALG }
+            }
+          },
+          { id: 't4d', priority: 'should', title: 'Vurder klage ved feil i nærhetsberegning',
+            sub: 'Klagefrist: 3 uker', time: '30 min',
+            detail: {
+              why: 'Nødplasser skyldes noen ganger feilberegning av nærhet. Klage kan føre til at du får plass i en av dine opprinnelige ønsker.',
+              how: ['Sjekk beregningen mot faktisk gangavstand.', 'Send skriftlig klage – bruk malen under.'],
+              template: { label: 'Mal – klage på nærhetsberegning', body: TPL_KLAGE_FEIL_NAERHET }
+            }
+          },
+          { id: 't5d', priority: 'must', title: 'Søk på nytt i supplerende opptak',
+            sub: 'Juster ønskelisten basert på det du nå vet', time: '30 min',
+            detail: {
+              why: 'Supplerende opptak åpner for ledige plasser gjennom hele året. Du må være aktiv i portalen for å bli vurdert.',
+              how: [
+                'Gå inn i Oslo-portalen og bekreft at du fortsatt søker.',
+                'Legg til barnehager som du kanskje ikke hadde med første gang.',
+                'Familiebarnehager har ofte kortere venteliste.'
+              ]
+            }
+          }
+        ]
+      },
+      {
+        id: '4e', emoji: '❌', title: 'Ingen tilbud', desc: 'Ingen plass i hovedopptaket',
+        tone: 'none',
+        body: 'Hvis barnet har lovfestet rett til plass er dette en feil. Kommunen må skaffe plass – og du må agere raskt.',
+        steps: [
+          { id: 't1e', priority: 'must', title: 'Klag innen 3 uker',
+            sub: 'Formell klage til Oslo kommunes klageorgan', time: '1 time',
+            detail: {
+              why: 'Barn som fyller 1 år innen utgangen av november har lovfestet rett til plass, jf. barnehageloven § 16. Uten plass er dette et brudd, og klage er veien til å få det rettet.',
+              how: [
+                'Skriv klage skriftlig. Bruk malen under.',
+                'Send innen 3 uker fra vedtaket – fristen er absolutt.',
+                'Vedlegg kopi av søknad og vedtak.',
+                'Send per e-post eller via Oslo-portalen. Behold kopi.'
+              ],
+              template: { label: 'Mal – klage på manglende plass (§ 16)', body: TPL_KLAGE_IKKE_PLASS },
+              tip: { type: 'warning', title: 'Statsforvalteren er neste instans', body: 'Hvis Oslo kommune avslår klagen, kan saken klages videre til Statsforvalteren.' },
+              links: [
+                { title: 'Klage på vedtak – Oslo', url: 'https://www.oslo.kommune.no/barnehage/klage-pa-vedtak-om-barnehageplass/' },
+                { title: 'Barnehageloven § 16', url: 'https://lovdata.no/lov/2005-06-17-64/§16' }
+              ]
+            }
+          },
+          { id: 't2e', priority: 'should', title: 'Ring Utdanningsetaten direkte',
+            sub: 'Telefon: 02180', time: '15 min',
+            detail: {
+              why: 'En telefon kan åpne dører raskere enn en skriftlig klage. Saksbehandlere kan se din sak og gi deg konkrete neste steg.',
+              how: [
+                'Ring 02180 og be om Utdanningsetaten, barnehageopptak.',
+                'Ha søknadsnummer og barnets fødselsdato klart.',
+                'Spør konkret: "Hva er status på vår sak, og hva er neste steg?"'
+              ]
+            }
+          },
+          { id: 't3e', priority: 'must', title: 'Dokumenter alt skriftlig',
+            sub: 'Hva du har søkt, når, og hva du har mottatt', time: '30 min',
+            detail: {
+              why: 'Dokumentasjon er avgjørende hvis saken eskaleres til Statsforvalteren. En ryddig tidslinje er din beste forsvarer.',
+              how: [
+                'Lag et enkelt dokument: søknadsdato, ønsker, tilbud (eller mangel), all skriftlig kontakt.',
+                'Ta skjermbilder av portalen der du har søkt.',
+                'Lagre e-postkorrespondanse i egen mappe.'
+              ]
+            }
+          },
+          { id: 't4e', priority: 'must', title: 'Hold søknaden aktiv i supplerende opptak',
+            sub: 'Endre ønsker basert på observert ledighet', time: 'Løpende',
+            detail: {
+              why: 'Selv om du klager, bør du parallelt være aktiv i supplerende opptak. Kombinasjonen gir flere veier inn.',
+              how: [
+                'Utvid ønskelista med familiebarnehager og nabobydeler.',
+                'Logg inn ukentlig for å sjekke oppdateringer.'
+              ]
+            }
+          },
+          { id: 't5e', priority: 'should', title: 'Kontakt private barnehager direkte',
+            sub: 'Ring – ikke e-post først. Sjekk familiebarnehager', time: '2 timer',
+            detail: {
+              why: 'Private barnehager har egne opptak og kan ha plasser som ikke vises i Oslo-portalen. Familiebarnehager har ofte kortest venteliste.',
+              how: ['Ring først, få tak i styrer.', 'Spør konkret om ledige plasser og ventelisteregler.', 'Følg opp med e-post for dokumentasjon.'],
+              template: { label: 'Ringescript – sjekk ledighet', body: TPL_RING_LEDIGHET }
+            }
+          }
+        ]
+      }
+    ],
+    links: [
+      { title: 'Klage på vedtak om barnehageplass', url: 'https://www.oslo.kommune.no/barnehage/klage-pa-vedtak-om-barnehageplass/' },
+      { title: 'Opptaksregler i Oslo', url: 'https://www.oslo.kommune.no/barnehage/opptaksregler-i-oslo/' },
+      { title: 'Barnehageloven (lovdata)', url: 'https://lovdata.no/lov/2005-06-17-64' },
+      { title: 'Statsforvalteren i Oslo og Viken', url: 'https://www.statsforvalteren.no/nb/oslo-og-viken/' }
+    ],
+    tip: {
+      type: 'warning',
+      title: 'Klagefrist: 3 uker',
+      body: 'Fristen løper fra tilbudsdatoen, ikke fra du åpner brevet. Har du mistanke om feil – skriv klagen selv om du også takker ja til tilbudet.'
+    }
+  },
+
+  {
+    id: 5, slug: 'venteliste', title: 'Har plass + venteliste', short: 'Venteliste',
+    emoji: '🔁', meta: 'Kan vare 3–18 måneder',
+    description: 'Du har en fungerende plass, ro i hverdagen, og jobber strategisk mot drømmeplassen. Dette er stedet du bruker mest tid på.',
+    steps: [
+      { id: 'w1', priority: 'should', title: 'Ring styrer i ønsket barnehage hver 8. uke',
+        sub: '"Vi står fortsatt på venteliste – er det endringer?"', time: '15 min',
+        detail: {
+          why: 'Fast rytme holder deg synlig uten å være plagsom. Styrere husker foreldre som ringer forutsigbart og høflig.',
+          how: [
+            'Legg i kalenderen som gjentagende hendelse.',
+            'Bruk ringescriptet under.',
+            'Loggfør svarene – bevegelse over tid gir deg info om hvilke barnehager som faktisk beveger seg.'
+          ],
+          template: { label: 'Ringescript – 2 min', body: TPL_RING_STYRER_SCRIPT }
+        }
+      },
+      { id: 'w2', priority: 'should', title: 'Send kort e-post i mai, august og januar',
+        sub: 'Hold deg synlig i de store bevegelsesvinduene', time: '10 min',
+        detail: {
+          why: 'Mai (varsler før sommeroppstart), august (hovedbevegelse) og januar (nyttårsovergang) er månedene hvor plasser faktisk flytter seg. Rett timing er halve jobben.',
+          how: ['Send ved månedsskiftet.', 'Hold det kort – under 5 linjer.'],
+          template: { label: 'E-postmal – sesongpåminnelse', body: TPL_MAI_AUG_JAN }
+        }
+      },
+      { id: 'w3', priority: 'must', title: 'Oppdater Oslo-portalen ved endring i ønsker',
+        sub: 'Hvis prioriteringen din har endret seg', time: '10 min',
+        detail: {
+          why: 'Supplerende opptak kjøres mot ønskelista som ligger i portalen. Er den utdatert, matcher du feil.',
+          how: ['Logg inn minst en gang i kvartalet.', 'Juster rekkefølgen hvis prioriteten har endret seg.']
+        }
+      },
+      { id: 'w4', priority: 'should', title: 'Hold øye med lokale foreldregrupper',
+        sub: '"Vi flytter X" er ofte første signal om ledighet', time: 'Løpende',
+        detail: {
+          why: 'Facebook-grupper varsler ofte om kommende bytter før de treffer noen offisiell liste. Den som er tidlig ute har best sjanse.',
+          how: ['Slå på varsler for den lokale foreldregruppen.', 'Respond raskt, men vennlig, når noen nevner at de flytter.']
+        }
+      },
+      { id: 'w5', priority: 'should', title: 'Sjekk oppsigelsesfrist i nåværende vedtekter',
+        sub: 'Typisk 1–3 måneder – viktig å vite ved bytte', time: '10 min',
+        detail: {
+          why: 'Når drømmeplassen åpner seg, må du kunne si opp nåværende plass raskt. Kjenner du fristen, kan du planlegge smidig.',
+          how: ['Les vedtektene fra nåværende barnehage.', 'Noter oppsigelsesfristen og hvor oppsigelse skal sendes.']
+        }
+      }
+    ],
+    links: [
+      { title: 'Supplerende opptak', url: 'https://www.oslo.kommune.no/barnehage/soke-bytte-eller-si-opp-barnehageplass/' },
+      { title: 'Ledige plasser hos private', url: 'https://www.oslo.kommune.no/barnehage/private-barnehager/' },
+      { title: 'Barnehagefakta.no', url: 'https://barnehagefakta.no' }
+    ],
+    tools: ['finder'],
+    tip: { type: 'info', title: 'Bevegelsesvinduer', body: 'August og januar er de store månedene. Plasser beveger seg også midt i semesteret, men mindre ofte.' }
+  },
+
+  {
+    id: 6, slug: 'aktivt-sok', title: 'Ingen plass, aktivt søk', short: 'Aktivt søk',
+    emoji: '🚨', meta: 'Krisemodus – håndterbart med struktur',
+    description: 'Krevende situasjon. Men håndterlig hvis du setter opp struktur og ikke gir opp.',
+    steps: [
+      { id: 'a1', priority: 'should', title: 'Sjekk Oslos ledige plasser hver mandag',
+        sub: 'Rutiniser – samme tid, samme dag', time: '15 min/uke',
+        detail: {
+          why: 'Rutine er halve kampen. Uregelmessig innsats glir fra deg. Et fast 15-minuttsvindu hver uke er enkelt å holde.',
+          how: ['Legg fast tid i kalenderen, f.eks. mandag morgen.', 'Logg inn i Oslo-portalen og sjekk ledige plasser.', 'Oppdater ønsker basert på hva du ser.']
+        }
+      },
+      { id: 'a2', priority: 'should', title: 'Ring 3–5 barnehager per uke',
+        sub: 'Spør konkret om ledighet – ikke bare "vi står på venteliste"', time: '45 min/uke',
+        detail: {
+          why: 'Telefon slår e-post for raske svar om ledighet. Mange plasser fylles muntlig før de når noen liste.',
+          how: ['Lag en ukesplan: hvilke 3–5 barnehager skal ringes.', 'Bruk ringescriptet under.', 'Hvis de ikke har plass, spør: "Kan vi stå på venteliste?" og be om skriftlig bekreftelse.'],
+          template: { label: 'Ringescript – sjekk ledighet', body: TPL_RING_LEDIGHET }
+        }
+      },
+      { id: 'a3', priority: 'should', title: 'Sjekk lokale foreldregrupper for bytte',
+        sub: 'Første varsel om ledighet kommer ofte her', time: '10 min/dag',
+        detail: {
+          why: 'Foreldregrupper varsler om flyttinger og bytter før det treffer noen kommunal liste. Hurtighet er premium.',
+          how: ['Slå på varsler for alle relevante grupper.', 'Svar raskt og vennlig når noen nevner ledighet.']
+        }
+      },
+      { id: 'a4', priority: 'must', title: 'Utvid søknadslisten i portalen',
+        sub: 'Legg til familiebarnehager og nabobydeler', time: '30 min',
+        detail: {
+          why: 'Jo flere ønsker på lista, jo flere matcher i supplerende opptak. Familiebarnehager har ofte kortest kø og kan være en god overgangsløsning.',
+          how: ['Logg inn i portalen.', 'Legg til alle barnehager du kan tenke deg – også de litt lenger unna.', 'Prioriter på nytt.']
+        }
+      },
+      { id: 'a5', priority: 'should', title: 'Kartlegg parallelle løsninger',
+        sub: 'Dagmamma, åpen barnehage, forlenget permisjon', time: '1 time',
+        detail: {
+          why: 'Ventetid uten struktur er slitsomt. Parallelle løsninger gir dere pusterom mens barnehagesøket pågår.',
+          how: [
+            'Dagmamma / praktikant som kortsiktig.',
+            'Åpen barnehage som sosial tilgang (gratis).',
+            'Forlenget foreldrepermisjon hvis økonomien tillater.',
+            'Arbeidsgiver: er deltid eller fleksibel ordning mulig?'
+          ],
+          links: [{ title: 'Åpne barnehager i Oslo', url: 'https://www.oslo.kommune.no/barnehage/apen-barnehage/' }]
+        }
+      }
+    ],
+    links: [
+      { title: 'Kontakt Utdanningsetaten – Oslo', url: 'https://www.oslo.kommune.no/etater-foretak-og-ombud/utdanningsetaten/kontakt/' },
+      { title: 'Åpne barnehager i Oslo', url: 'https://www.oslo.kommune.no/barnehage/apen-barnehage/' },
+      { title: 'Klage på vedtak', url: 'https://www.oslo.kommune.no/barnehage/klage-pa-vedtak-om-barnehageplass/' },
+      { title: 'FUB – Foreldreutvalget for barnehager', url: 'https://www.fubhg.no/' }
+    ],
+    tools: ['finder', 'permisjon'],
+    tip: { type: 'warning', title: 'Utdanningsetaten Oslo', body: 'Ring 02180 for direkte dialog. Skriftlig klage er viktig, men en telefon kan åpne dører raskere.' }
+  },
+
+  {
+    id: 7, slug: 'mal-naadd', title: 'Mål: Optimal plass', short: 'Mål nådd',
+    emoji: '🏆', meta: 'Sluttstatus',
+    description: 'Du har den plassen du egentlig ville ha – enten direkte i hovedopptak eller via bytte/venteliste senere.',
+    steps: [
+      { id: 'g1', priority: 'should', title: 'Meld deg inn i SU og/eller foreldreråd',
+        sub: 'Medvirkningsarbeid styrker barnehagen for alle', time: '1 time/mnd',
+        detail: {
+          why: 'Foreldremedvirkning gir deg innflytelse og gir barnehagen sterkere foreldrefellesskap.',
+          how: ['Spør styrer om neste SU-møte.', 'Still som representant hvis ledig.']
+        }
+      },
+      { id: 'g2', priority: 'should', title: 'Del erfaringen din med andre i nabolaget',
+        sub: 'Du vet nå mer enn de fleste – hjelp naboene', time: 'Uformelt',
+        detail: {
+          why: 'Foreldre i barselsgruppa eller naboer som begynner opptaket om et år kan spare mye tid ved å få din kunnskap videre.',
+          how: ['Fortell om prosessen når det passer seg – ikke overfør ubedt.', 'Del gjerne denne siden.']
+        }
+      },
+      { id: 'g3', priority: 'should', title: 'Skriv til bydelsutvalget ved ineffektiviteter',
+        sub: 'Hvis du oppdaget svakheter i systemet', time: '30 min',
+        detail: {
+          why: 'Bydelsutvalg og FUB jobber med systemendringer. Din erfaring er verdifull input.',
+          how: ['Skriv kort og konkret om det som fungerte dårlig.', 'Send til bydelsutvalget og/eller FUB.'],
+          links: [{ title: 'FUB', url: 'https://www.fubhg.no/' }, { title: 'Bydelsutvalg i Oslo', url: 'https://www.oslo.kommune.no/politikk/bydelsutvalg/' }]
+        }
+      }
+    ],
+    links: [
+      { title: 'Foreldremedvirkning i barnehagen', url: 'https://www.fubhg.no/samarbeidsutvalg-su/' },
+      { title: 'Bydelsutvalg i Oslo', url: 'https://www.oslo.kommune.no/politikk/bydelsutvalg/' }
+    ],
+    tip: { type: 'success', title: 'Refleksjon', body: 'De fleste foreldre bruker 2–12 måneder på å komme hit om de ikke fikk 1. valg i hovedopptak. Forskjellen fra passivitet er skriftlige ventelister og faste oppfølgingsrutiner.' }
+  }
+];
+
+/* =========================================================
+   STATE
+   ========================================================= */
+const STORAGE_KEY = 'barnehageopptak.v2';
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch (e) {}
+  return { currentStage: 1, checked: {}, outcome: null, completedStages: {} };
+}
+function saveState() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {}
+}
+let state = loadState();
+
+/* =========================================================
+   HJELPERE
+   ========================================================= */
+function stageById(id) { return STAGES.find(s => s.id === id); }
+function stageSteps(stage) {
+  if (stage.id === 4) {
+    if (!state.outcome) return [];
+    const outcome = stage.outcomes.find(o => o.id === state.outcome);
+    return outcome ? outcome.steps : [];
+  }
+  return stage.steps || [];
+}
+function stageProgress(stage) {
+  const steps = stageSteps(stage);
+  if (steps.length === 0) return { done: 0, total: 0, pct: 0, mustDone: 0, mustTotal: 0 };
+  const done = steps.filter(s => state.checked[s.id]).length;
+  const musts = steps.filter(s => s.priority === 'must');
+  const mustDone = musts.filter(s => state.checked[s.id]).length;
+  return {
+    done, total: steps.length,
+    pct: Math.round((done / steps.length) * 100),
+    mustDone, mustTotal: musts.length
+  };
+}
+function isStageComplete(stage) {
+  if (stage.id === 4 && !state.outcome) return false;
+  const { done, total } = stageProgress(stage);
+  return total > 0 && done === total;
+}
+function findStep(stepId) {
+  for (const stage of STAGES) {
+    if (stage.steps) {
+      const s = stage.steps.find(st => st.id === stepId);
+      if (s) return s;
+    }
+    if (stage.outcomes) {
+      for (const o of stage.outcomes) {
+        const s = o.steps.find(st => st.id === stepId);
+        if (s) return s;
+      }
+    }
+  }
+  return null;
+}
+
+function iconExt() { return '<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7"/><path d="M8 7h9v9"/></svg>'; }
+function iconCheck() { return '<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>'; }
+function iconArrow() { return '<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>'; }
+function iconBack() { return '<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>'; }
+function iconMap() { return '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2 3 5v17l6-3 6 3 6-3V2l-6 3-6-3Z"/><path d="M9 2v17"/><path d="M15 5v17"/></svg>'; }
+function iconCal() { return '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg>'; }
+function iconLink() { return '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>'; }
+function iconCopy() { return '<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16V4a2 2 0 0 1 2-2h10"/></svg>'; }
+
+function escapeHtml(s) {
+  return String(s || '')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+}
+
+/* =========================================================
+   RENDER – stepper
+   ========================================================= */
+function renderStepper() {
+  const el = document.getElementById('stepper-inner');
+  el.innerHTML = STAGES.map(stage => {
+    const progress = stageProgress(stage);
+    const isCurrent = state.currentStage === stage.id;
+    const isDone = isStageComplete(stage) && !isCurrent;
+    const cls = ['stage-pill'];
+    if (isCurrent) cls.push('is-current');
+    if (isDone) cls.push('is-done');
+    const numContent = isDone ? iconCheck() : stage.id;
+    return `
+      <button class="${cls.join(' ')}" data-stage="${stage.id}" aria-label="Gå til stadium ${stage.id}: ${stage.title}">
+        <div class="pill-head"><span class="num">${numContent}</span><span>Stadium ${stage.id}</span></div>
+        <div class="pill-title">${stage.emoji} ${stage.short}</div>
+        <div class="pill-meta">${progress.total > 0 ? `${progress.done}/${progress.total} steg` : (stage.id === 4 ? 'Velg utfall' : '—')}</div>
+      </button>
+    `;
+  }).join('');
+  el.querySelectorAll('.stage-pill').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.currentStage = parseInt(btn.dataset.stage, 10);
+      saveState();
+      renderAll();
+      document.getElementById('focus').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  });
+}
+
+/* =========================================================
+   RENDER – sjekkliste gruppert på må/bør
+   ========================================================= */
+function renderChecklist(steps) {
+  const musts = steps.filter(s => s.priority === 'must');
+  const shoulds = steps.filter(s => s.priority !== 'must');
+  const groupHtml = (group, label, labelClass, groupSteps) => `
+    <div class="checklist-group">
+      <div class="checklist-group-label ${labelClass}">
+        <span class="pill">${group}</span>
+        ${label}
+        <span class="count">${groupSteps.filter(s => state.checked[s.id]).length} / ${groupSteps.length}</span>
+      </div>
+      ${groupSteps.map(renderCheckItem).join('')}
+    </div>
+  `;
+  let html = '<div class="checklist">';
+  if (musts.length) html += groupHtml('Må', 'Uten dette blir ikke prosessen komplett', 'must', musts);
+  if (shoulds.length) html += groupHtml('Bør', 'Øker sjansen for å få en bedre plass', 'should', shoulds);
+  html += '</div>';
+  return html;
+}
+
+function renderCheckItem(s) {
+  const checked = state.checked[s.id] ? 'checked' : '';
+  const tagClass = s.priority === 'must' ? 'must' : 'should';
+  const tagText = s.priority === 'must' ? 'Må' : 'Bør';
+  const hasDetail = !!s.detail;
+  return `
+    <div class="check-item">
+      <label class="check-item-toggle">
+        <input type="checkbox" data-step="${s.id}" ${checked} />
+        <span class="check-content">
+          <span class="check-title-row">
+            <span class="priority-tag ${tagClass}">${tagText}</span>
+            <span class="check-title">${escapeHtml(s.title)}</span>
+          </span>
+          <span class="check-sub">${escapeHtml(s.sub || '')}</span>
+        </span>
+        ${s.time ? `<span class="check-side">${escapeHtml(s.time)}</span>` : ''}
+      </label>
+      ${hasDetail ? `<button class="info-btn" data-info="${s.id}" aria-label="Mer info om ${escapeHtml(s.title)}" title="Mer info">i</button>` : ''}
+    </div>
+  `;
+}
+
+/* =========================================================
+   RENDER – verktøy-kort
+   ========================================================= */
+function renderTools(stage) {
+  if (!stage.tools || !stage.tools.length) return '';
+  return stage.tools.map(t => {
+    if (t === 'finder') {
+      return `
+        <div class="tool-card">
+          <h4>${iconMap()} Barnehagefinneren</h4>
+          <p>Visualiser barnehager rundt hjem, jobb og andre punkter. Finn overlappende områder og se hva som finnes i gangavstand.</p>
+          <div class="tool-actions">
+            <button class="btn btn--primary btn--sm" data-open-finder>
+              Åpne her på siden
+              ${iconArrow()}
+            </button>
+          </div>
+        </div>
+      `;
+    }
+    if (t === 'permisjon') {
+      return `
+        <div class="tool-card">
+          <h4>${iconCal()} Permisjons- og ferieplanlegger</h4>
+          <p>Planlegg permisjon, ferie og utbetalt 80 % lønn opp mot barnehagestart. Beregner for mor og far/partner, og tar høyde for norske ferie- og permisjonsregler samt røde dager.</p>
+          <div class="tool-actions">
+            <button class="btn btn--primary btn--sm" data-open-planner>
+              Åpne her på siden
+              ${iconArrow()}
+            </button>
+          </div>
+        </div>
+      `;
+    }
+    return '';
+  }).join('');
+}
+
+/* =========================================================
+   RENDER – fokuskort
+   ========================================================= */
+function renderFocus() {
+  const stage = stageById(state.currentStage);
+  const el = document.getElementById('focus');
+  const progress = stageProgress(stage);
+
+  const isStage4 = stage.id === 4;
+  const outcome = isStage4 && state.outcome ? stage.outcomes.find(o => o.id === state.outcome) : null;
+  const descBody = outcome ? outcome.body : stage.description;
+  const currentEmoji = outcome ? outcome.emoji : stage.emoji;
+  const currentTitle = outcome ? `Tilbud: ${outcome.title}` : stage.title;
+
+  const outcomeToneBadge = outcome ? {
+    success: '<span class="badge badge--success"><span class="dot"></span>Optimalt</span>',
+    good: '<span class="badge badge--info"><span class="dot"></span>God løsning</span>',
+    ok: '<span class="badge badge--warning"><span class="dot"></span>Akseptabelt</span>',
+    bad: '<span class="badge badge--warning"><span class="dot"></span>Utilstrekkelig</span>',
+    none: '<span class="badge badge--danger"><span class="dot"></span>Kritisk</span>'
+  }[outcome.tone] : '';
+
+  const outcomeGrid = isStage4 ? `
+    <div class="outcome-grid" role="radiogroup" aria-label="Hvilket tilbud fikk du?">
+      ${stage.outcomes.map(o => `
+        <button class="outcome-option ${state.outcome === o.id ? 'is-selected' : ''}"
+                data-outcome="${o.id}" role="radio" aria-checked="${state.outcome === o.id}">
+          <span class="oemoji">${o.emoji}</span>
+          <span class="otitle">${escapeHtml(o.title)}</span>
+          <span class="odesc">${escapeHtml(o.desc)}</span>
+        </button>
+      `).join('')}
+    </div>
+  ` : '';
+
+  const steps = stageSteps(stage);
+  const checklistHTML = steps.length === 0 && isStage4 ? `
+    <div class="alert alert--info">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+      <div><strong>Velg først hvilket tilbud du fikk</strong>Da får du en skreddersydd sjekkliste for din situasjon.</div>
+    </div>
+  ` : renderChecklist(steps);
+
+  let tipHTML = '';
+  const tip = stage.tip;
+  if (tip) {
+    const cls = tip.type === 'warning' ? 'alert--warning' : (tip.type === 'success' ? 'alert--success' : 'alert--info');
+    const ico = tip.type === 'warning'
+      ? '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>'
+      : (tip.type === 'success'
+        ? '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>'
+        : '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>');
+    tipHTML = `<div class="alert ${cls}" style="margin-top: var(--s-4);">${ico}<div><strong>${escapeHtml(tip.title)}</strong>${escapeHtml(tip.body)}</div></div>`;
+  }
+
+  const toolsHTML = renderTools(stage);
+
+  const linksHTML = `
+    <div class="side-card">
+      <h4>${iconLink()} Nyttige lenker</h4>
+      <div class="links">
+        ${stage.links.map(l => `
+          <a class="link-ext" href="${escapeHtml(l.url)}" target="_blank" rel="noopener">
+            ${escapeHtml(l.title)}
+            ${iconExt()}
+          </a>
+        `).join('')}
+      </div>
+    </div>
+  `;
+
+  const completeHTML = isStageComplete(stage)
+    ? `<div class="stage-complete">${iconCheck()} Alle steg i dette stadiet er huket av</div>` : '';
+
+  const canBack = stage.id > 1;
+  const canForward = stage.id < STAGES.length;
+  const allDone = isStageComplete(stage);
+  const forwardLabel = allDone ? 'Gå til neste stadium' : 'Fortsett uansett';
+  const navHint = allDone
+    ? 'Bra jobbet – du kan gå videre.'
+    : (isStage4 && !state.outcome) ? 'Velg først hvilket tilbud du fikk.'
+      : progress.mustTotal > 0
+        ? `${progress.done} av ${progress.total} steg huket av · ${progress.mustDone} av ${progress.mustTotal} må-steg.`
+        : `${progress.done} av ${progress.total} steg huket av.`;
+
+  el.innerHTML = `
+    <div class="focus-header">
+      <div class="focus-emoji">${currentEmoji}</div>
+      <div class="focus-title-area">
+        <div class="section-label">Stadium ${stage.id} av ${STAGES.length}</div>
+        <h1>${escapeHtml(currentTitle)}</h1>
+        <div class="focus-meta">
+          <span>${escapeHtml(stage.meta)}</span>
+          ${outcomeToneBadge}
+        </div>
+        <div class="focus-progress">
+          <div class="progress"><div class="bar" style="width: ${progress.pct}%"></div></div>
+          <small>${progress.total > 0 ? `${progress.done} av ${progress.total} steg fullført` : 'Velg først hvilket tilbud du fikk'}</small>
+        </div>
+      </div>
+    </div>
+
+    <div class="description">${escapeHtml(descBody)}</div>
+
+    ${outcomeGrid}
+
+    <div class="focus-body">
+      <div>
+        <h4 style="margin-bottom: var(--s-3);">Huk av når du er ferdig</h4>
+        ${checklistHTML}
+        ${completeHTML}
+      </div>
+      <div class="stack">
+        ${toolsHTML}
+        ${linksHTML}
+        ${tipHTML}
+      </div>
+    </div>
+
+    <div class="focus-footer">
+      <span class="nav-hint">${navHint}</span>
+      <div class="nav-actions">
+        ${canBack ? `<button class="btn btn--ghost" data-nav="back">${iconBack()} Forrige stadium</button>` : ''}
+        ${canForward ? `<button class="btn ${allDone ? 'btn--primary' : 'btn--secondary'}" data-nav="next">${forwardLabel} ${iconArrow()}</button>` : ''}
+      </div>
+    </div>
+  `;
+
+  // Bind events
+  el.querySelectorAll('[data-nav]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.currentStage = btn.dataset.nav === 'back'
+        ? Math.max(1, state.currentStage - 1)
+        : Math.min(STAGES.length, state.currentStage + 1);
+      saveState(); renderAll();
+      document.getElementById('focus').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  });
+
+  el.querySelectorAll('input[type="checkbox"][data-step]').forEach(cb => {
+    cb.addEventListener('change', () => {
+      state.checked[cb.dataset.step] = cb.checked;
+      saveState();
+      renderAll();
+    });
+  });
+
+  el.querySelectorAll('.outcome-option').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.outcome = btn.dataset.outcome;
+      saveState();
+      renderAll();
+    });
+  });
+
+  el.querySelectorAll('[data-info]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      openStepDetail(btn.dataset.info);
+    });
+  });
+
+  el.querySelectorAll('[data-open-finder]').forEach(btn => {
+    btn.addEventListener('click', openFinderModal);
+  });
+
+  el.querySelectorAll('[data-open-planner]').forEach(btn => {
+    btn.addEventListener('click', openPlannerModal);
+  });
+}
+
+/* =========================================================
+   RENDER – topbar badge + alt
+   ========================================================= */
+function renderTopBadge() {
+  const totalDone = STAGES.filter(s => isStageComplete(s)).length;
+  document.getElementById('overall-badge-text').textContent =
+    `Stadium ${state.currentStage} av ${STAGES.length} · ${totalDone} fullført`;
+}
+function renderAll() { renderStepper(); renderFocus(); renderTopBadge(); }
+
+/* =========================================================
+   MODAL – detail (step-info)
+   ========================================================= */
+function openStepDetail(stepId) {
+  const step = findStep(stepId);
+  if (!step || !step.detail) return;
+  const d = step.detail;
+
+  const priorityTag = step.priority === 'must'
+    ? '<span class="priority-tag must">Må</span>'
+    : '<span class="priority-tag should">Bør</span>';
+
+  document.getElementById('detail-priority').innerHTML = priorityTag;
+  document.getElementById('detail-modal-title').textContent = step.title;
+
+  let bodyHtml = '';
+  if (step.sub) bodyHtml += `<p class="modal-sub">${escapeHtml(step.sub)}</p>`;
+
+  if (step.time) {
+    bodyHtml += `<div class="modal-meta"><span>⏱ ${escapeHtml(step.time)}</span></div>`;
+  }
+
+  if (d.why) {
+    bodyHtml += `<h4>Hvorfor dette er viktig</h4><p>${escapeHtml(d.why)}</p>`;
+  }
+  if (d.how && d.how.length) {
+    bodyHtml += `<h4>Slik gjør du det</h4><ol>${d.how.map(h => `<li>${escapeHtml(h)}</li>`).join('')}</ol>`;
+  }
+  if (d.template) {
+    bodyHtml += `
+      <h4>Forslag til tekst</h4>
+      <div class="template">
+        <div class="template-head">
+          <span class="template-label">${escapeHtml(d.template.label)}</span>
+          <button class="copy-btn" data-copy="${stepId}">${iconCopy()} Kopier</button>
+        </div>
+        <div class="template-body" id="template-${stepId}">${escapeHtml(d.template.body)}</div>
+      </div>
+    `;
+  }
+  if (d.tip) {
+    const cls = d.tip.type === 'info' ? 'is-info' : '';
+    bodyHtml += `<div class="modal-tip ${cls}"><div><strong>${escapeHtml(d.tip.title)}</strong>${escapeHtml(d.tip.body)}</div></div>`;
+  }
+  if (d.tool === 'finder') {
+    bodyHtml += `
+      <h4>Verktøy</h4>
+      <button class="btn btn--primary btn--sm" data-open-finder-from-detail>
+        ${iconMap()} Åpne barnehagefinneren
+      </button>
+    `;
+  }
+  if (d.tool === 'planner') {
+    bodyHtml += `
+      <h4>Verktøy</h4>
+      <button class="btn btn--primary btn--sm" data-open-planner-from-detail>
+        ${iconCal()} Åpne permisjonsplanleggeren
+      </button>
+    `;
+  }
+  if (d.links && d.links.length) {
+    bodyHtml += `<h4>Relevante lenker</h4><div class="modal-links">${d.links.map(l =>
+      `<a class="link-ext" href="${escapeHtml(l.url)}" target="_blank" rel="noopener">${escapeHtml(l.title)} ${iconExt()}</a>`
+    ).join('')}</div>`;
+  }
+
+  const body = document.getElementById('detail-modal-body');
+  body.innerHTML = bodyHtml;
+
+  // Wire copy-btn
+  body.querySelectorAll('[data-copy]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tplBody = document.getElementById('template-' + btn.dataset.copy);
+      if (!tplBody) return;
+      const text = tplBody.textContent;
+      navigator.clipboard.writeText(text).then(() => {
+        btn.classList.add('is-copied');
+        btn.innerHTML = iconCheck() + ' Kopiert';
+        setTimeout(() => {
+          btn.classList.remove('is-copied');
+          btn.innerHTML = iconCopy() + ' Kopier';
+        }, 2000);
+      }).catch(() => {
+        // Fallback
+        const ta = document.createElement('textarea');
+        ta.value = text; document.body.appendChild(ta);
+        ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+        btn.classList.add('is-copied');
+        btn.innerHTML = iconCheck() + ' Kopiert';
+        setTimeout(() => {
+          btn.classList.remove('is-copied');
+          btn.innerHTML = iconCopy() + ' Kopier';
+        }, 2000);
+      });
+    });
+  });
+
+  // Wire "åpne finder fra detaljmodal"
+  body.querySelectorAll('[data-open-finder-from-detail]').forEach(btn => {
+    btn.addEventListener('click', () => { closeModal('detail-modal'); openFinderModal(); });
+  });
+
+  // Wire "åpne planner fra detaljmodal"
+  body.querySelectorAll('[data-open-planner-from-detail]').forEach(btn => {
+    btn.addEventListener('click', () => { closeModal('detail-modal'); openPlannerModal(); });
+  });
+
+  openModal('detail-modal');
+}
+
+/* =========================================================
+   MODAL – barnehagefinner (iframe)
+   ========================================================= */
+function openFinderModal() {
+  const iframe = document.getElementById('finder-iframe');
+  if (!iframe.src) iframe.src = 'barnehagefinner.html';
+  openModal('finder-modal');
+}
+
+/* =========================================================
+   MODAL – permisjonsplanlegger (iframe)
+   ========================================================= */
+function openPlannerModal() {
+  const iframe = document.getElementById('planner-iframe');
+  if (!iframe.src) iframe.src = 'permisjonsplanlegger.html';
+  openModal('planner-modal');
+}
+
+/* =========================================================
+   MODAL – felles open/close
+   ========================================================= */
+function openModal(id) {
+  document.getElementById(id).classList.add('is-open');
+  document.body.classList.add('modal-open');
+}
+function closeModal(id) {
+  document.getElementById(id).classList.remove('is-open');
+  if (!document.querySelector('.modal-backdrop.is-open')) {
+    document.body.classList.remove('modal-open');
+  }
+}
+
+// Lukk på backdrop-klikk + ESC + data-close
+document.querySelectorAll('.modal-backdrop').forEach(bd => {
+  bd.addEventListener('click', (e) => {
+    if (e.target === bd) closeModal(bd.id);
+  });
+});
+document.querySelectorAll('[data-close]').forEach(btn => {
+  btn.addEventListener('click', () => closeModal(btn.dataset.close));
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    const open = document.querySelector('.modal-backdrop.is-open');
+    if (open) closeModal(open.id);
+  }
+});
+
+/* =========================================================
+   INIT
+   ========================================================= */
+document.getElementById('reset-btn').addEventListener('click', () => {
+  if (confirm('Vil du nullstille all fremdrift? Dette fjerner alle avkrysninger og valg.')) {
+    state = { currentStage: 1, checked: {}, outcome: null, completedStages: {} };
+    saveState(); renderAll();
+  }
+});
+
+renderAll();
+</script>
+</body>
+</html>

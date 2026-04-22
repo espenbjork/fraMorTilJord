@@ -1,0 +1,1153 @@
+<!doctype html>
+<html lang="nb">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Barnehagefinner – Oslo (prototype)</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<style>
+  /* =========================================================
+     DESIGN TOKENS – Varm & jordnær (designsystem v0.1)
+     Bevarer gamle variabelnavn som JS/inline styles refererer til.
+     ========================================================= */
+  :root {
+    /* Base-flater */
+    --bg: #F5EFE6;
+    --surface: #FEFAF4;
+    --surface-muted: #EFE6D8;
+    --border: #E3D7C3;
+    --border-strong: #CDBEA6;
+
+    /* Tekst */
+    --text: #2D2621;
+    --text-muted: #6B6055;
+    --text-soft: #8C8073;
+
+    /* Aksenter */
+    --accent: #B85C3C;            /* terrakotta – primær */
+    --accent-hover: #9E4B2E;
+    --accent-soft: #F2DDD1;
+    --accent-2: #C9913A;           /* okre – brukes av JS barRow */
+    --success: #6F8A4E;
+    --success-soft: #E1E8D4;
+    --warning: #C9913A;
+    --warning-soft: #F5E6CA;
+    --info: #5A7A8C;
+    --info-soft: #DDE6EC;
+    --danger: #A8443A;
+    --danger-soft: #F2D6D1;
+
+    /* Plum for polygon/hull – skiller seg varmt fra aksenten */
+    --hull: #8A5E6E;
+    --hull-soft: #EADFE1;
+
+    /* Bakover­kompatible aliaser (brukes fra JS/inline style) */
+    --panel: var(--surface);
+    --muted: var(--text-muted);
+    --chip: var(--surface-muted);
+    --chip-text: var(--text-muted);
+
+    /* Punktfarger for slots (kart-markører) */
+    --col-home: var(--accent);         /* brukerens anker */
+    --col-job1: #C9913A;
+    --col-job2: #A8443A;
+    --col-poi1: #5A7A8C;
+    --col-poi2: #6F8A4E;
+
+    /* Typografi */
+    --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    --font-serif: "Source Serif Pro", "Georgia", serif;
+
+    /* Radius */
+    --r-sm: 6px; --r-md: 10px; --r-lg: 16px; --r-xl: 24px; --r-full: 999px;
+
+    /* Skygger */
+    --sh-sm: 0 1px 2px rgba(67, 46, 28, 0.04);
+    --sh-md: 0 2px 8px rgba(67, 46, 28, 0.06), 0 1px 2px rgba(67, 46, 28, 0.04);
+    --sh-lg: 0 8px 24px rgba(67, 46, 28, 0.08);
+
+    --focus: 0 0 0 3px rgba(184, 92, 60, 0.35);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    font-family: var(--font-sans);
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* =========================================================
+     APP LAYOUT
+     ========================================================= */
+  .app { display: grid; grid-template-columns: 380px 1fr; height: 100vh; }
+  aside {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+  }
+  aside .pad { padding: 20px 20px 28px; }
+  aside h1 {
+    font-family: var(--font-serif);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin: 0 0 6px;
+    font-size: 22px;
+    color: var(--text);
+  }
+  aside .sub {
+    color: var(--text-muted);
+    font-size: 13px;
+    line-height: 1.6;
+    margin-bottom: 16px;
+  }
+
+  /* =========================================================
+     SLOTS (punkter)
+     ========================================================= */
+  .slot {
+    margin-top: 14px;
+    padding: 14px;
+    background: #FBF5EB;
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    box-shadow: var(--sh-sm);
+  }
+  .slot .label {
+    display: flex; align-items: center; gap: 8px;
+    font-weight: 600;
+    font-size: 11px;
+    color: var(--text-soft);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 8px;
+  }
+  .slot .label .swatch {
+    width: 12px; height: 12px; border-radius: 50%;
+    box-shadow: 0 0 0 2px var(--surface), 0 0 0 3px var(--border);
+  }
+  .slot .label .opt {
+    margin-left: auto;
+    font-weight: 500;
+    text-transform: none;
+    letter-spacing: 0;
+    font-size: 11px;
+    color: var(--text-soft);
+    background: var(--surface-muted);
+    padding: 2px 8px;
+    border-radius: var(--r-full);
+  }
+  .slot .nameinput { margin-bottom: 6px; }
+
+  /* Inputs */
+  .input-wrap { position: relative; }
+  input[type="text"] {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--r-sm);
+    background: var(--surface);
+    color: var(--text);
+    font: inherit;
+    font-size: 14px;
+    transition: border-color 120ms ease, box-shadow 120ms ease;
+  }
+  input[type="text"]:hover { border-color: var(--border-strong); }
+  input[type="text"]:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: var(--focus);
+  }
+  input[type="text"]::placeholder { color: var(--text-soft); }
+
+  .clearbtn {
+    position: absolute;
+    right: 6px; top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    color: var(--text-soft);
+    font-size: 18px;
+    cursor: pointer;
+    padding: 2px 8px;
+    border-radius: var(--r-sm);
+    line-height: 1;
+    transition: background-color 120ms ease, color 120ms ease;
+  }
+  .clearbtn:hover { background: var(--surface-muted); color: var(--text); }
+
+  /* Forslagsboks */
+  .suggest {
+    position: absolute;
+    left: 0; right: 0; top: calc(100% + 4px);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-sm);
+    z-index: 500;
+    max-height: 240px;
+    overflow-y: auto;
+    box-shadow: var(--sh-lg);
+  }
+  .suggest button {
+    width: 100%;
+    text-align: left;
+    padding: 10px 12px;
+    background: var(--surface);
+    border: none;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    font: inherit;
+    font-size: 13px;
+    color: var(--text);
+  }
+  .suggest button:last-child { border-bottom: none; }
+  .suggest button:hover,
+  .suggest button:focus {
+    background: var(--accent-soft);
+    outline: none;
+  }
+
+  /* Radius range */
+  .radius-row {
+    display: grid;
+    grid-template-columns: 1fr 70px;
+    gap: 12px;
+    align-items: center;
+    margin-top: 12px;
+  }
+  .radius-row input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    background: transparent;
+    margin: 0;
+    cursor: pointer;
+  }
+  .radius-row input[type="range"]::-webkit-slider-runnable-track {
+    height: 6px;
+    background: var(--surface-muted);
+    border: 1px solid var(--border);
+    border-radius: var(--r-full);
+  }
+  .radius-row input[type="range"]::-moz-range-track {
+    height: 6px;
+    background: var(--surface-muted);
+    border: 1px solid var(--border);
+    border-radius: var(--r-full);
+  }
+  .radius-row input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 2px solid var(--surface);
+    box-shadow: 0 1px 3px rgba(67, 46, 28, 0.2);
+    margin-top: -7px;
+    cursor: pointer;
+    transition: transform 120ms ease, box-shadow 120ms ease;
+  }
+  .radius-row input[type="range"]::-moz-range-thumb {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 2px solid var(--surface);
+    box-shadow: 0 1px 3px rgba(67, 46, 28, 0.2);
+    cursor: pointer;
+  }
+  .radius-row input[type="range"]:hover::-webkit-slider-thumb { transform: scale(1.1); }
+  .radius-row input[type="range"]:focus-visible { outline: none; }
+  .radius-row input[type="range"]:focus-visible::-webkit-slider-thumb { box-shadow: var(--focus); }
+
+  .radius-row .radius-val {
+    font-size: 12px;
+    color: var(--text-muted);
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+  }
+
+  .hint {
+    color: var(--text-muted);
+    font-size: 12px;
+    margin-top: 16px;
+    padding: 12px 14px;
+    background: var(--surface-muted);
+    border-left: 3px solid var(--accent);
+    border-radius: var(--r-sm);
+    line-height: 1.6;
+  }
+
+  /* =========================================================
+     KART + RESULTATLISTE
+     ========================================================= */
+  main {
+    position: relative;
+    display: grid;
+    grid-template-rows: 60% 40%;
+  }
+  #map { width: 100%; height: 100%; }
+  .list {
+    overflow-y: auto;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+  }
+  .list-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface-muted);
+    position: sticky;
+    top: 0;
+    z-index: 2;
+  }
+  .list-header h2 {
+    margin: 0;
+    font-family: var(--font-serif);
+    font-weight: 600;
+    font-size: 16px;
+    color: var(--text);
+    letter-spacing: -0.01em;
+  }
+
+  /* Resultatkort */
+  .card {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 4px 12px;
+    align-items: start;
+    transition: background-color 120ms ease;
+  }
+  .card:hover { background: var(--surface-muted); }
+  .card.inside { background: var(--hull-soft); }
+  .card.inside:hover { background: #E0D3D6; }
+
+  .card .name {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text);
+    grid-column: 1 / 2;
+    line-height: 1.4;
+  }
+  .card .meta {
+    color: var(--text-soft);
+    font-size: 12px;
+    grid-column: 1 / 2;
+    line-height: 1.6;
+  }
+  .card .metric {
+    grid-column: 2 / 3;
+    grid-row: 1 / 3;
+    text-align: right;
+  }
+  .metric .big {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+  }
+  .metric .small {
+    font-size: 11px;
+    color: var(--text-soft);
+    margin-top: 2px;
+  }
+
+  /* Tags */
+  .tag {
+    display: inline-block;
+    background: var(--surface-muted);
+    color: var(--text-muted);
+    padding: 2px 8px;
+    border-radius: var(--r-full);
+    font-size: 11px;
+    font-weight: 500;
+    margin-right: 4px;
+    border: 1px solid var(--border);
+  }
+  .tag.priv {
+    background: var(--warning-soft);
+    color: #7A5512;
+    border-color: #E8D1A0;
+  }
+  .tag.kom {
+    background: var(--success-soft);
+    color: #3F5A26;
+    border-color: #C7D4B1;
+  }
+  .tag.hull {
+    background: var(--hull);
+    color: #FFF8F2;
+    border-color: var(--hull);
+  }
+
+  /* Rank */
+  .rank {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 6px;
+    border-radius: var(--r-full);
+    background: var(--surface-muted);
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 700;
+    margin-right: 8px;
+    border: 1px solid var(--border);
+    vertical-align: middle;
+  }
+  .card.inside .rank {
+    background: var(--hull);
+    color: #FFF8F2;
+    border-color: var(--hull);
+  }
+
+  .empty {
+    padding: 32px 16px;
+    color: var(--text-muted);
+    text-align: center;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  /* =========================================================
+     MODAL
+     ========================================================= */
+  .modal-bg {
+    position: fixed;
+    inset: 0;
+    background: rgba(45, 38, 33, 0.5);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    backdrop-filter: blur(2px);
+  }
+  .modal-bg.on { display: flex; }
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    max-width: 640px;
+    width: 92%;
+    max-height: 86vh;
+    overflow-y: auto;
+    padding: 24px 28px;
+    box-shadow: var(--sh-lg);
+    position: relative;
+  }
+  .modal h2 {
+    margin: 0 0 4px;
+    font-family: var(--font-serif);
+    font-weight: 600;
+    font-size: 22px;
+    letter-spacing: -0.01em;
+    color: var(--text);
+    padding-right: 32px;
+  }
+  .modal .sub {
+    color: var(--text-muted);
+    font-size: 13px;
+    margin-bottom: 16px;
+  }
+  .modal .section {
+    margin-top: 18px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+  }
+  .modal .section strong {
+    display: block;
+    margin-bottom: 10px;
+    font-size: 13px;
+    color: var(--text);
+    font-weight: 700;
+  }
+  .kv {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 6px 12px;
+    font-size: 13px;
+    margin: 0;
+  }
+  .kv dt {
+    color: var(--text-soft);
+    font-size: 12px;
+    align-self: start;
+  }
+  .kv dd {
+    margin: 0;
+    color: var(--text);
+  }
+  .kv dd a {
+    color: var(--accent);
+    text-decoration: none;
+    border-bottom: 1px solid rgba(184, 92, 60, 0.3);
+    padding-bottom: 1px;
+  }
+  .kv dd a:hover {
+    color: var(--accent-hover);
+    border-bottom-color: var(--accent-hover);
+  }
+
+  .modal a.close {
+    position: absolute;
+    top: 16px; right: 20px;
+    color: var(--text-soft);
+    text-decoration: none;
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+    width: 28px; height: 28px;
+    display: grid;
+    place-items: center;
+    border-radius: var(--r-sm);
+    float: none;
+    transition: background-color 120ms ease, color 120ms ease;
+  }
+  .modal a.close:hover { background: var(--surface-muted); color: var(--text); }
+
+  .bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 6px 0;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  .bar .bar-fill {
+    height: 8px;
+    background: var(--surface-muted);
+    border: 1px solid var(--border);
+    border-radius: var(--r-full);
+    flex: 1;
+    overflow: hidden;
+  }
+  .bar .bar-fill > span {
+    display: block;
+    height: 100%;
+    background: var(--accent);
+    border-radius: var(--r-full);
+    transition: width 400ms ease;
+  }
+
+  .actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+  }
+
+  /* =========================================================
+     KNAPPER
+     ========================================================= */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 16px;
+    border: 1px solid var(--border-strong);
+    background: var(--surface);
+    border-radius: var(--r-md);
+    cursor: pointer;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    color: var(--text);
+    transition: background-color 120ms ease, border-color 120ms ease, transform 120ms ease;
+    min-height: 38px;
+  }
+  .btn:hover { background: var(--surface-muted); border-color: var(--text-muted); }
+  .btn:active { transform: translateY(1px); }
+  .btn:focus-visible { outline: none; box-shadow: var(--focus); }
+  .btn-primary {
+    background: var(--accent);
+    color: #FFF8F2;
+    border-color: var(--accent);
+    box-shadow: var(--sh-sm);
+  }
+  .btn-primary:hover {
+    background: var(--accent-hover);
+    border-color: var(--accent-hover);
+  }
+
+  /* =========================================================
+     LEAFLET LEGEND + MARKØRER
+     ========================================================= */
+  .legend {
+    background: var(--surface);
+    padding: 10px 12px;
+    border-radius: var(--r-md);
+    border: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--text);
+    box-shadow: var(--sh-md);
+    line-height: 1.75;
+  }
+  .legend .dot {
+    display: inline-block;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    margin-right: 8px;
+    vertical-align: middle;
+    box-shadow: 0 0 0 1.5px var(--surface), 0 0 0 2.5px rgba(67, 46, 28, 0.15);
+  }
+
+  .point-marker {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    border: 3px solid var(--surface);
+    box-shadow: 0 0 0 1px rgba(67, 46, 28, 0.25), 0 2px 6px rgba(67, 46, 28, 0.18);
+  }
+  .bhg-marker {
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--text-soft);
+    border: 2px solid var(--surface);
+    box-shadow: 0 0 0 1px rgba(67, 46, 28, 0.2);
+  }
+  .bhg-marker.inside { background: var(--hull); }
+  .bhg-marker.top    { background: var(--accent); }
+  .bhg-marker.top.inside {
+    background: var(--hull);
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+
+  /* Leaflet tile + kontroller – små finisseringer som matcher systemet */
+  .leaflet-control-zoom a {
+    background: var(--surface) !important;
+    color: var(--text) !important;
+    border-color: var(--border) !important;
+    border-radius: var(--r-sm) !important;
+  }
+  .leaflet-control-zoom a:hover {
+    background: var(--surface-muted) !important;
+  }
+  .leaflet-control-attribution {
+    background: rgba(254, 250, 244, 0.9) !important;
+    color: var(--text-soft) !important;
+    font-size: 10px !important;
+  }
+
+  /* =========================================================
+     MOBIL
+     ========================================================= */
+  @media (max-width: 900px) {
+    .app { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+    aside { max-height: 50vh; }
+    main { height: 60vh; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside>
+    <div class="pad">
+      <h1>Barnehagefinner</h1>
+      <div class="sub">Rangerer barnehager i Oslo på nærhet til dine punkter. Hvert punkt har en radius — barnehager <em>innenfor</em> en sirkel eller polygonet markeres lilla, og avstand under radiusen straffes ikke.</div>
+
+      <div id="slots"></div>
+
+      <div class="hint">
+        Radius = hvor langt fra punktet du godtar gratis. Sett liten radius der du vil være nært (hjem), stor radius der det ikke haster (jobb, POI).<br>
+        Rangering = sum av avstand som er utenfor radiusen til hvert punkt. Polygon-merking aktiveres når ≥3 punkter er satt.
+      </div>
+    </div>
+  </aside>
+
+  <main>
+    <div id="map"></div>
+    <div class="list">
+      <div class="list-header">
+        <h2>Topp 8 nærmeste <span id="sortdesc" style="font-weight:400;color:var(--muted);font-size:12px;margin-left:8px"></span></h2>
+        <button class="btn" id="clearbtn" style="font-size:12px;padding:3px 8px">Nullstill</button>
+      </div>
+      <div id="results"></div>
+    </div>
+  </main>
+</div>
+
+<div class="modal-bg" id="modalbg" onclick="closeModal(event)">
+  <div class="modal" id="modal" onclick="event.stopPropagation()"></div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script id="barnehager" type="application/json">[{"orgnr":"999297404","navn":"Lykketrollet familiebarnehage Avdeling Stordamveien AS","lat":59.91126,"lng":10.84531,"alder":"1 - 2","eierform":"Privat","antallBarn":4},{"orgnr":"999050603","navn":"Risløkka familiebarnehage Cemile Algunerhan","lat":59.93313,"lng":10.82391,"alder":"1 - 2","eierform":"Privat","antallBarn":8},{"orgnr":"998754461","navn":"Sørenga barnehage","lat":59.90266,"lng":10.75541,"alder":"1 - 5","eierform":"Kommunal","antallBarn":124},{"orgnr":"998730856","navn":"Toppen familiebarnehage Cb AS","lat":59.87881,"lng":10.79893,"alder":"1 - 2","eierform":"Privat","antallBarn":8},{"orgnr":"998650097","navn":"Tommlekollen friluftsbarnehage AS","lat":59.98143,"lng":10.65318,"alder":"1 - 5","eierform":"Privat","antallBarn":26},{"orgnr":"998639476","navn":"Lille Venn familiebarnehage","lat":59.88391,"lng":10.80697,"alder":"1 - 2","eierform":"Privat","antallBarn":8},{"orgnr":"998400597","navn":"Mikaelgården steinerbarnehage","lat":59.88264,"lng":10.84334,"alder":"1 - 5","eierform":"Privat","antallBarn":61},{"orgnr":"998051673","navn":"Thor Olsens barnehage","lat":59.93976,"lng":10.77017,"alder":"1 - 5","eierform":"Kommunal","antallBarn":111},{"orgnr":"997939042","navn":"Støperiet barnehage","lat":59.92711,"lng":10.77854,"alder":"1 - 5","eierform":"Kommunal","antallBarn":197},{"orgnr":"997838122","navn":"Amigos Småvenner familiebarnehage","lat":59.92247,"lng":10.66385,"alder":"1 - 2","eierform":"Privat","antallBarn":4},{"orgnr":"997628306","navn":"Amigos Giraffen familiebarnehage","lat":59.94864,"lng":10.78526,"alder":"1 - 2","eierform":"Privat","antallBarn":8},{"orgnr":"997571673","navn":"Økernly barnehage AS","lat":59.93334,"lng":10.80713,"alder":"1 - 5","eierform":"Privat","antallBarn":82},{"orgnr":"997478673","navn":"Norlandia Kanonen barnehage","lat":59.93119,"lng":10.79159,"alder":"1 - 5","eierform":"Privat","antallBarn":91},{"orgnr":"996797864","navn":"Barneslottet barnehage","lat":59.92455,"lng":10.86367,"alder":"1 - 5","eierform":"Kommunal","antallBarn":111},{"orgnr":"996741389","navn":"Radarveien barnehage","lat":59.87119,"lng":10.81068,"alder":"1 - 5","eierform":"Kommunal","antallBarn":54},{"orgnr":"996470652","navn":"Treklossen familiebarnehage","lat":59.86769,"lng":10.8081,"alder":"1 - 2","eierform":"Privat","antallBarn":8},{"orgnr":"996396169","navn":"Montessoribarnehagen Solsikken Solkroken","lat":59.94772,"lng":10.6377,"alder":"1 - 2","eierform":"Privat","antallBarn":16},{"orgnr":"996236498","navn":"Idun Fus barnehage AS","lat":59.94159,"lng":10.7678,"alder":"1 - 5","eierform":"Privat","antallBarn":66},{"orgnr":"996173860","navn":"Lykketrollet familiebarnehage Avdeling Vogts Gate 32B AS","lat":59.93279,"lng":10.76259,"alder":"1 - 2","eierform":"Privat","antallBarn":4},{"orgnr":"996113639","navn":"Læringsverkstedet Grefsen Terrasse naturbarnehage","lat":59.95408,"lng":10.7961,"alder":"1 - 5","eierform":"Privat","antallBarn":66},{"orgnr":"996081222","navn":"Grorud idrettsbarnehage","lat":59.95807,"lng":10.88198,"alder":"1 - 5","eierform":"Kommunal","antallBarn":87},{"orgnr":"996016676","navn":"Norlandia Tjuvholmen barnehage","lat":59.90779,"lng":10.72048,"alder":"1 - 5","eierform":"Privat","antallBarn":51},{"orgnr":"995631806","navn":"Fyrstikkalleen barnehage","lat":59.91526,"lng":10.79432,"alder":"1 - 5","eierform":"Kommunal","antallBarn":117},{"orgnr":"995467046","navn":"Tinkern Kanvas-barnehage Drift","lat":59.91214,"lng":10.71319,"alder":"1 - 5","eierform":"Privat","antallBarn":112},{"orgnr":"995435748","navn":"Lykketrollet familiebarnehage Avdeling Vogts Gate 32A AS","lat":59.93271,"lng":10.76254,"alder":"1 - 2","eierform":"Privat","antallBarn":4},{"orgnr":"995364549","navn":"Bjølsenparken barnehage","lat":59.94048,"lng":10.75761,"alder":"1 - 5","eierform":"Kommunal","antallBarn":38},{"orgnr":"995319101","navn":"Den Tysk-Norske Barnehagen i Oslo A","lat":59.9367,"lng":10.76011,"alder":"1 - 5","eierform":"Privat","antallBarn":99},{"orgnr":"995293404","navn":"Lillohøyden Fus barnehage AS","lat":59.94552,"lng":10.76876,"alder":"1 - 5","eierform":"Privat","antallBarn":61},{"orgnr":"995110199","navn":"Sigurdsgate familiebarnehage AS","lat":59.91321,"lng":10.77488,"alder":"1 - 2","eierform":"Privat","antallBarn":4},{"orgnr":"995093049","navn":"Margarinfabrikken barnehage Nybygget - Stavangergata 40","lat":59.94302,"lng":10.75667,"alder":"1 - 5","eierform":"Kommunal","antallBarn":200},{"orgnr":"994919318","navn":"Læringsverkstedet Ekeberg idrettsbarnehage","lat":59.89164,"lng":10.77832,"alder":"1 - 5","eierform":"Privat","antallBarn":88},{"orgnr":"994914421","navn":"Foreldreforeningen Regnbuen åpen barnehage","lat":59.96582,"lng":10.78875,"alder":"","eierform":"Privat","antallBarn":0},{"orgnr":"994790463","navn":"Fredriksborg familiebarnehage","lat":59.90307,"lng":10.68751,"alder":"1 - 2","eierform":"Privat","antallBarn":8},{"orgnr":"994708449","navn":"Grefsenlyst 14 Fus barnehage AS","lat":59.95332,"lng":10.79563,"alder":"1 - 5","eierform":"Privat","antallBarn":39},{"orgnr":"994593110","navn":"Lykketrollet familiebarnehage Avdeling Bentsegata AS","lat":59.93794,"lng":10.75802,"alder":"1 - 2","eierform":"Privat","antallBarn":4},{"orgnr":"994464000","navn":"Amigos Småen familiebarnehage","lat":59.94978,"lng":10.77889,"alder":"1 - 2","eierform":"Privat","antallBarn":8},{"orgnr":"994416162","navn":"Utmarkveien barnehage","lat":59.88308,"lng":10.8497,"alder":"1 - 5","eierform":"Kommunal","antallBarn":93},{"orgnr":"994393103","navn":"Radiohuset barnehage","lat":59.87304,"lng":10.81753,"alder":"1 - 5","eierform":"Kommunal","antallBarn":53},{"orgnr":"994233742","navn":"Bitteliten Brattvoll familiebarnehage AS","lat":59.85783,"lng":10.81334,"alder":"1 - 2","eierform":"Privat","antallBarn":8},{"orgnr":"994203584","navn":"Sophies Hage barnehage","lat":59.92756,"lng":10.77655,"alder":"1 - 5","eierform":"Kommunal","antallBarn":85},{"orgnr":"994174525","navn":"0 - 6 Ullensakergata barnehage AS","lat":59.91101,"lng":10.78188,"alder":"1 - 5","eierform":"Privat","antallBarn":23},{"orgnr":"994173200","navn":"Teglverket barnehage","lat":59.92415,"lng":10.79738,"alder":"1 - 5","eierform":"Kommunal","antallBarn":160},{"orgnr":"994159577","navn":"Åpen Barnehage, Bjerke familiesenter","lat":59.94398,"lng":10.84781,"alder":"","eierform":"Kommunal","antallBarn":0},{"orgnr":"994004956","navn":"Etterstadjordet barnehage","lat":59.90885,"lng":10.80413,"alder":"1 - 5","eierform":"Kommunal","antallBarn":130},{"orgnr":"994004840","navn":"Kværnerdalen barnehage","lat":59.90307,"lng":10.79138,"alder":"1 - 5","eierform":"Kommunal","antallBarn":304},{"orgnr":"993898848","navn":"Bergtunet barnehage","lat":59.94875,"lng":10.73913,"alder":"1 - 5","eierform":"Kommunal","antallBarn":105},{"orgnr":"993898740","navn":"Grefsentunet barnehage","lat":59.94663,"lng":10.78813,"alder":"1 - 5","eierform":"Kommunal","antallBarn":59},{"orgnr":"993895660","navn":"Skogfuglen barnehage AS","lat":59.93323,"lng":10.64139,"alder":"1 - 5","eierform":"Privat","antallBarn":57},{"orgnr":"993891525","navn":"Skytterbanen Fus barnehage AS","lat":59.95323,"lng":10.81883,"alder":"1 - 5","eierform":"Privat","antallBarn":126},{"orgnr":"993804703","navn":"Lovisenberg Diakonale barnehage AS","lat":59.93217,"lng":10.74416,"alder":"1 - 5","eierform":"Privat","antallBarn":65},{"orgnr":"993800007","navn":"Betha Thorsens Kanvas-barnehage Drift","lat":59.91397,"lng":10.71452,"alder":"1 - 5","eierform":"Privat","antallBarn":99},{"orgnr":"993406597","navn":"Sotamyggen barnehage","lat":59.90819,"lng":10.78747,"alder":"1 - 5","eierform":"Kommunal","antallBarn":32},{"orgnr":"993294977","navn":"Arnebråtveien barnehage AS","lat":59.95233,"lng":10.663,"alder":"1 - 5","eierform":"Privat","antallBarn":67},{"orgnr":"993156434","navn":"Grefsenlyst Fus barnehage AS","lat":59.95358,"lng":10.79658,"alder":"1 - 5","eierform":"Privat","antallBarn":48},{"orgnr":"993066494","navn":"Kattugla steinerbarnehage","lat":59.95304,"lng":10.65843,"alder":"1 - 5","eierform":"Privat","antallBarn":54},{"orgnr":"993020540","navn":"Lørensvingen barnehage","lat":59.93261,"lng":10.7871,"alder":"1 - 5","eierform":"Kommunal","antallBarn":61},{"orgnr":"992968028","navn":"Tusentrippen barnehage","lat":59.93529,"lng":10.72264,"alder":"1 - 5","eierform":"Kommunal","antallBarn":53},{"orgnr":"992851325","navn":"Amigos Abrakadabra familiebarnehage","lat":59.91153,"lng":10.72273,"alder":"1 - 2","eierform":"Privat","antallBarn":8},{"orgnr":"992781556","navn":"Lykketrollet familiebarnehage Avdeling Anna Rogstads Vei AS","lat":59.94999,"lng":10.83022,"alder":"1 - 2","eierform":"Privat","antallBarn":4},{"orgnr":"992781521","navn":"Lykketrollet familiebarnehage Avdeling Eltonveien AS","lat":59.93976,"lng":10.80045,"alder":"1 - 2","eierform":"Privat","antallBarn":4},{"orgnr":"992748583","navn":"Kia barnehage","lat":59.91531,"lng":10.75428,"alder":"1 - 5","eierform":"Privat","antallBarn":13},{"orgnr":"992733519","navn":"Bjørnebo barnehage","lat":59.84983,"lng":10.82415,"alder":"1 - 5","eierform":"Kommunal","antallBarn":63},{"orgnr":"992668164","navn":"Oppsal Torg barnehage","lat":59.89438,"lng":10.84071,"alder":"1 - 5","eierform":"Kommunal","antallBarn":56},{"orgnr":"992661135","navn":"Fiskevollen musikkbarnehage","lat":59.84288,"lng":10.77756,"alder":"1 - 5","eierform":"Privat","antallBarn":27},{"orgnr":"992594098","navn":"Lykketrollet familiebarnehage Avdeling Sverdrupsgate AS","lat":59.92091,"lng":10.7657,"alder":"1 - 2","eierform":"Privat","antallBarn":4},{"orgnr":"992571756","navn":"Bikuben barnehage","lat":59.9192,"lng":10.63472,"alder":"1 - 5","eierform":"Kommunal","antallBarn":52},{"orgnr":"992571691","navn":"Smestad barnehage","lat":59.93349,"lng":10.68134,"alder":"1 - 5","eierform":"Kommunal","antallBarn":148},{"orgnr":"992571659","navn":"Kvernkallen barnehage","lat":59.92881,"lng":10.63401,"alder":"1 - 5","eierform":"Kommunal","antallBarn":76},{"orgnr":"992552980","navn":"Havnehagen barnehage","lat":59.93182,"lng":10.87924,"alder":"1 - 5","eierform":"Kommunal","antallBarn":51},{"orgnr":"992547081","navn":"Lykketrollet familiebarnehage Avdeling Frydens Gate AS","lat":59.92526,"lng":10.77663,"alder":"1 - 2","eierform":"Privat","antallBarn":4},{"orgnr":"992501774","navn":"Sjokoladefabrikken barnehage","lat":59.92147,"lng":10.76774,"alder":"1 - 5","eierform":"Kommunal","antallBarn":100},{"orgnr":"992473533","navn":"Mads barnehage","lat":59.92746,"lng":10.69346,"alder":"1 - 5","eierform":"Kommunal","antallBarn":64},{"orgnr":"992462310","navn":"Espira Marienfryd barnehage","lat":59.92051,"lng":10.79178,"alder":"1 - 5","eierform":"Privat","antallBarn":116},{"orgnr":"992368292","navn":"Lykketrollet familiebarnehage Avdeling Vogts Gate 32C AS","lat":59.93274,"lng":10.76234,"alder":"1 - 2","eierform":"Privat","antallBarn":4},{"orgnr":"992332336","navn":"Venkes familiebarnehage Venke Anita Fredstad","lat":59.91223,"lng":10.78098,"alder":"1 - 2","eierform":"Privat","antallBarn":4},{"orgnr":"992284641","navn":"Tigergutt familiebarnehage AS","lat":59.88486,"lng":10.77882,"alder":"1 - 2","eierform":"Privat","antallBarn":8},{"orgnr":"992193603","navn":"Steinspranget barnehage","lat":59.87051,"lng":10.82241,"alder":"1 - 5","eierform":"Kommunal","antallBarn":87},{"orgnr":"992173629","navn":"Christinedal Kunst og kulturbarnehage","lat":59.90305,"lng":10.82483,"alder":"1 - 5","eierform":"Privat","antallBarn":60},{"orgnr":"992159251","navn":"Maurtua private familiebarnehage AS avd Nordalveien","lat":59.93462,"lng":10.81431,"alder":"1 - 2","eierform":"Privat","antallBarn":8},{"orgnr":"992042400","navn":"Læringsverkstedet Langaard barnehage","lat":59.92372,"lng":10.73209,"alder":"1 - 5","eierform":"Privat","antallBarn":49},{"orgnr":"991997210","navn":"Nøtteliten familiebarnehage","lat":59.95709,"lng":10.8634,"alder":"1 - 2","eierform":"Privat","antallBarn":4},{"orgnr":"991964118","navn":"Gullberget barnehage","lat":59.96703,"lng":10.92321,"alder":"1 - 5","eierform":"Kommunal","antallBarn":55},{"orgnr":"991963170","navn":"Nedre Fossum Gård barnehage","lat":59.95955,"lng":10.92024,"alder":"1 - 5","eierform":"Kommunal","antallBarn":70},{"orgnr":"991956514","navn":"Ringnes Park Fus barnehage AS","lat":59.92979,"lng":10.76056,"alder":"1 - 5","eierform":"Privat","antallBarn":72},{"orgnr":"991875417","navn":"Kværnerbyen Fus barnehage AS","lat":59.90314,"lng":10.78867,"alder":"1 - 5","eierform":"Privat","antallBarn":76},{"orgnr":"991773096","navn":"Engebråten barnehage","lat":59.96084,"lng":10.7761,"alder":"1 - 5","eierform":"Kommunal","antallBarn":78},{"orgnr":"991773002","navn":"Kjelsås skole barnehage","lat":59.96544,"lng":10.78511,"alder":"1 - 5","eierform":"Kommunal","antallBarn":103},{"orgnr":"991744568","navn":"Heibergløkka barnehage","lat":59.91543,"lng":10.77602,"alder":"1 - 5","eierform":"Kommunal","antallBarn":27},{"orgnr":"991743944","navn":"Norlandia Eventyrstua barnehage","lat":59.94939,"lng":10.77443,"alder":"1 - 5","eierform":"Privat","antallBarn":91},{"orgnr":"991740627","navn":"Lykketrollet familiebarnehage Avdeling Ulsrudveien AS","lat":59.88931,"lng":10.84783,"alder":"1 - 2","eierform":"Privat","antallBarn":8},{"orgnr":"991734341","navn":"Hakkebakkeskogen Kastanjeveien","lat":59.9517,"lng":10.78255,"alder":"1 - 2","eierform":"Privat","antallBarn":8},{"orgnr":"991734295","navn":"Hakkebakkeskogen Fyrstikkbakken","lat":59.91058,"lng":10.82764,"alder":"1 - 2","eierform":"Privat","antallBarn":8},{"orgnr":"991658009","navn":"Dr. Brandts barnehage AS","lat":59.92075,"lng":10.73807,"alder":"1 - 5","eierform":"Privat","antallBarn":63},{"orgnr":"991626557","navn":"Lykketrollet familiebarnehage Avdeling Dalbakkveien AS","lat":59.90716,"lng":10.83171,"alder":"1 - 2","eierform":"Privat","antallBarn":4},{"orgnr":"991399364","navn":"Røahagan familiebarnehage AS","lat":59.95002,"lng":10.64822,"alder":"1 - 2","eierform":"Privat","antallBarn":8},{"orgnr":"991189874","navn":"Sognsveien barnehage","lat":59.93993,"lng":10.73077,"alder":"1 - 5","eierform":"Kommunal","antallBarn":114},{"orgnr":"991088393","navn":"Lopperud barnehage","lat":59.87344,"lng":10.83373,"alder":"1 - 5","eierform":"Kommunal","antallBarn":90},{"orgnr":"990972850","navn":"Barnehagenvår Løren","lat":59.93115,"lng":10.78727,"alder":"1 - 5","eierform":"Privat","antallBarn":56},{"orgnr":"990882983","navn":"Katta barnehage","lat":59.92132,"lng":10.7407,"alder":"1 - 5","eierform":"Privat","antallBarn":60},{"orgnr":"990839778","navn":"Papaya Kanvas-barnehage","lat":59.91176,"lng":10.7645,"alder":"1 - 5","eierform":"Privat","antallBarn":32},{"orgnr":"990726035","navn":"Knøttene Familiebarnehage-Bydel Alna AS","lat":59.92935,"lng":10.87488,"alder":"1 - 5","eierform":"Privat","antallBarn":10},{"orgnr":"990656568","navn":"Bitteliten Karlsrud familiebarnehage AS","lat":59.87825,"lng":10.80198,"alder":"1 - 2","eierform":"Privat","antallBarn":8},{"orgnr":"990608083","navn":"Hullebergmyra barnehage","lat":59.92511,"lng":10.63936,"alder":"1 - 5","eierform":"Kommunal","antallBarn":77},{"orgnr":"990559643","navn":"Hakkebakkeskogen Daniel Walstadsvei","lat":59.96336,"lng":10.78007,"alder":"1 - 2","eierform":"Privat","antallBarn":8},{"orgnr":"990551111","navn":"Norlandia Gaustadskogen barnehage","lat":59.9548,"lng":10.71767,"alder":"1 - 5","eierform":"Privat","antallBarn":109},{"orgnr":"990535051","navn":"Andromeda barnehage","lat":59.96204,"lng":10.75618,"alder":"1 - 5","eierform":"Privat","antallBarn":54},{"orgnr":"990328269","navn":"Vestlikollen barnehage","lat":59.9687,"lng":10.92988,"alder":"1 - 5","eierform":"Kommunal","antallBarn":40},{"orgnr":"990160678","navn":"Mariannes Hus AS","lat":59.88036,"lng":10.77942,"alder":"1 - 5","eierform":"Privat","antallBarn":10},{"orgnr":"990032610","navn":"Eventyrlia Fus barnehage","lat":59.84787,"lng":10.8189,"alder":"1 - 5","eierform":"Privat","antallBarn":73},{"orgnr":"990021449","navn":"Melkeveien barnehage","lat":59.92389,"lng":10.73892,"alder":"1 - 5","eierform":"Kommunal","antallBarn":71},{"orgnr":"989933973","navn":"Kløfterhagen barnehage AS","lat":59.93509,"lng":10.88884,"alder":"1 - 5","eierform":"Privat","antallBarn":11},{"orgnr":"989916432","navn":"Læringsverkstedet Ullern barnehage","lat":59.92136,"lng":10.63502,"alder":"1 - 5","eierform":"Privat","antallBarn":22},{"orgnr":"989836048","navn":"Brennastubben familiebarnehage AS","lat":59.84905,"lng":10.84328,"alder":"1 - 5","eierform":"Privat","antallBarn":10},{"orgnr":"989482181","navn":"Stiftelsen Ljabru Gård steinerbarnehage","lat":59.84956,"lng":10.80339,"alder":"1 - 5","eierform":"Privat","antallBarn":63},{"orgnr":"989442147","navn":"Holmsåsen Fus barnehage AS","lat":59.82663,"lng":10.8019,"alder":"1 - 5","eierform":"Privat","antallBarn":72},{"orgnr":"989288741","navn":"Marihøna familiebarnehage","lat":59.93632,"lng":10.75562,"alder":"1 - 2","eierform":"Privat","antallBarn":8},{"orgnr":"988997609","navn":"Goliaskogen barnehage","lat":59.91031,"lng":10.84698,"alder":"1 - 5","eierform":"Kommunal","antallBarn":64},{"orgnr":"988997218","navn":"Rustad Gård barnehage","lat":59.87195,"lng":10.84603,"alder":"1 - 5","eierform":"Kommunal","antallBarn":28},{"orgnr":"988997110","navn":"Holtet barnehage","lat":59.88499,"lng":10.85486,"alder":"1 - 5","eierform":"Kommunal","antallBarn":105},{"orgnr":"988730491","navn":"Årvollskogen barnehage AS","lat":59.95222,"lng":10.81781,"alder":"1 - 5","eierform":"Privat","antallBarn":63},{"orgnr":"988728144","navn":"Fryd barnehage","lat":59.92181,"lng":10.74799,"alder":"1 - 5","eierform":"Kommunal","antallBarn":68},{"orgnr":"988599174","navn":"Veslehaugen familiebarnehage B. Bjorskau","lat":59.95331,"lng":10.75387,"alder":"1 - 5","eierform":"Privat","antallBarn":10},{"orgnr":"988592846","navn":"Brobekk barnehage","lat":59.94277,"lng":10.81831,"alder":"1 - 5","eierform":"Kommunal","antallBarn":72},{"orgnr":"988592765","navn":"Skrubbelund barnehage","lat":59.943,"lng":10.85352,"alder":"1 - 5","eierform":"Kommunal","antallBarn":72},{"orgnr":"988532665","navn":"Sanatoriet barnehage","lat":59.94938,"lng":10.79309,"alder":"1 - 5","eierform":"Kommunal","antallBarn":55},{"orgnr":"988509647","navn":"Bitteliten Merkur familiebarnehage AS","lat":59.87344,"lng":10.80538,"alder":"1 - 2","eierform":"Privat","antallBarn":8},{"orgnr":"988446130","navn":"Bakketoppen barnehage","lat":59.85304,"lng":10.81072,"alder":"1 - 5","eierform":"Privat","antallBarn":60},{"orgnr":"988410756","navn":"Munkenga barnehage","lat":59.90757,"lng":10.77866,"alder":"1 - 5","eierform":"Kommunal","antallBarn":62},{"orgnr":"988378518","navn":"Pontoppidans barnehage","lat":59.93687,"lng":10.75275,"alder":"1 - 5","eierform":"Kommunal","antallBarn":33},{"orgnr":"988373613","navn":"Norlandia Lysejordet barnehage","lat":59.93782,"lng":10.64199,"alder":"1 - 5","eierform":"Privat","antallBarn":87},{"orgnr":"988364630","navn":"Huseby barnehage","lat":59.94169,"lng":10.65608,"alder":"1 - 5","eierform":"Kommunal","antallBarn":202},{"orgnr":"988359564","navn":"Læringsverkstedet Torshovhagen Doremi barnehage","lat":59.93272,"lng":10.77181,"alder":"1 - 5","eierform":"Privat","antallBarn":49},{"orgnr":"988303232","navn":"Vårveien barnehage","lat":59.89585,"lng":10.78824,"alder":"1 - 5","eierform":"Kommunal","antallBarn":91},{"orgnr":"988127299","navn":"Jeppes familiebarnehage","lat":59.95382,"lng":10.67368,"alder":"1 - 2","eierform":"Privat","antallBarn":8},{"orgnr":"988081140","navn":"Kampen kunstbarnehage","lat":59.91575,"lng":10.78162,"alder":"1 - 5","eierform":"Privat","antallBarn":26},{"orgnr":"988000248","navn":"Nedre Fossum Gård åpen barnehage","lat":59.95955,"lng":10.92024,"alder":"","eierform":"Kommunal","antallBarn":0},{"orgnr":"987723165","navn":"Montessoribarnehagen Solsikken Sognestuen","lat":59.964,"lng":10.73753,"alder":"1 - 5","eierform":"Privat","antallBarn":37},{"orgnr":"987723068","navn":"Montesorribarnehagen Solsikken Gladheim","lat":59.96138,"lng":10.67128,"alder":"1 - 5","eierform":"Privat","antallBarn":75},{"orgnr":"987697172","navn":"Fuglekongen familiebarnehage AS","lat":59.94908,"lng":10.69333,"alder":"1 - 2","eierform":"Privat","antallBarn":8},{"orgnr":"987697164","navn":"Måltrosten barnehage AS","lat":59.95741,"lng":10.65981,"alder":"1 - 5","eierform":"Privat","antallBarn":70},{"orgnr":"987646705","navn":"Veksthusfløtten familiebarnehage AS","lat":59.94021,"lng":10.83147,"alder":"1 - 2","eierform":"Privat","antallBarn":8},{"orgnr":"987610735","navn":"Vestliskaret Fus barnehage AS","lat":59.97206,"lng":10.92754,"alder":"1 - 5","eierform":"Privat","antallBarn":41},{"orgnr":"987146192","navn":"Internasjonal kulturbarnehage Åkeberg AS","lat":59.90819,"lng":10.77815,"alder":"3 - 5","eierform":"Privat","antallBarn":42},{"orgnr":"987117575","navn":"Hakkespetten barnehage","lat":59.90055,"lng":10.68079,"alder":"1 - 5","eierform":"Privat","antallBarn":58},{"orgnr":"987021152","navn":"Trudes familiebarnehage Trude Gulbrandsen","lat":59.91223,"lng":10.78098,"alder":"1 - 5","eierform":"Privat","antallBarn":4},{"orgnr":"986993282","navn":"Kulturparken Fus barnehage AS","lat":59.92092,"lng":10.77622,"alder":"1 - 5","eierform":"Privat","antallBarn":66},{"orgnr":"986877711","navn":"Fridtjovsgate barnehage","lat":59.90709,"lng":10.79206,"alder":"1 - 5","eierform":"Kommunal","antallBarn":52},{"orgnr":"986838880","navn":"Knærten familiebarnehage avd 2","lat":59.90163,"lng":10.8267,"alder":"1 - 2","eierform":"Privat","antallBarn":8},{"orgnr":"986792341","navn":"Lunden barnehage AS","lat":59.93866,"lng":10.83189,"alder":"1 - 5","eierform":"Privat","antallBarn":40},{"orgnr":"986611134","navn":"Gaia barnehage","lat":59.92311,"lng":10.75938,"alder":"1 - 5","eierform":"Privat","antallBarn":79},{"orgnr":"986375910","navn":"Berg Gård barnehage","lat":59.94852,"lng":10.73843,"alder":"1 - 5","eierform":"Kommunal","antallBarn":12},{"orgnr":"986103139","navn":"Hakkebakkeskogen Ullernveien","lat":59.92234,"lng":10.66058,"alder":"1 - 2","eierform":"Privat","antallBarn":8},{"orgnr":"985890463","navn":"Hoff Terrasse barnehage SA","lat":59.92627,"lng":10.67248,"alder":"1 - 5","eierform":"Privat","antallBarn":11},{"orgnr":"985219648","navn":"Skredder'n barnehage","lat":59.85103,"lng":10.791,"alder":"1 - 5","eierform":"Privat","antallBarn":64},{"orgnr":"984933908","navn":"Norlandia Valhall barnehage","lat":59.94959,"lng":10.89753,"alder":"1 - 5","eierform":"Privat","antallBarn":73},{"orgnr":"984170610","navn":"Hakkebakkeskogen Dr Rustadsvei","lat":59.91522,"lng":10.6434,"alder":"1 - 2","eierform":"Privat","antallBarn":8},{"orgnr":"984169868","navn":"Hakkebakkeskogen Tåsenveien","lat":59.9583,"lng":10.76013,"alder":"1 - 2","eierform":"Privat","antallBarn":8},{"orgnr":"984151527","navn":"Eventyrbrua steinerbarnehage","lat":59.91764,"lng":10.75819,"alder":"1 - 5","eierform":"Privat","antallBarn":63},{"orgnr":"984019025","navn":"Kongeskogen barnehage","lat":59.90501,"lng":10.67636,"alder":"1 - 5","eierform":"Kommunal","antallBarn":60},{"orgnr":"983214770","navn":"Mølleplassen spesialbarnehage","lat":59.95453,"lng":10.63279,"alder":"1 - 5","eierform":"Privat","antallBarn":10},{"orgnr":"983130704","navn":"Maurtua private familiebarnehage AS avd Rabbeveien","lat":59.93162,"lng":10.81413,"alder":"1 - 2","eierform":"Privat","antallBarn":8},{"orgnr":"982499348","navn":"Collettløkka barnehage SA","lat":59.93922,"lng":10.73338,"alder":"1 - 5","eierform":"Privat","antallBarn":46},{"orgnr":"982443636","navn":"Skogkanten barnehage AS","lat":59.95709,"lng":10.8634,"alder":"1 - 5","eierform":"Privat","antallBarn":12},{"orgnr":"982151848","navn":"Dynekilen barnehage","lat":59.93132,"lng":10.7759,"alder":"1 - 5","eierform":"Kommunal","antallBarn":132},{"orgnr":"981175379","navn":"Montessoribarnehagen Solsikken Knerten","lat":59.9539,"lng":10.63553,"alder":"1 - 2","eierform":"Privat","antallBarn":10},{"orgnr":"981169557","navn":"Scala private barnehage SA","lat":59.94449,"lng":10.89765,"alder":"1 - 5","eierform":"Privat","antallBarn":54},{"orgnr":"980918874","navn":"Kolåsbakken barnehage SA","lat":59.94534,"lng":10.83047,"alder":"1 - 5","eierform":"Privat","antallBarn":74},{"orgnr":"980687244","navn":"Madamløkken barnehage","lat":59.94202,"lng":10.83573,"alder":"1 - 5","eierform":"Kommunal","antallBarn":33},{"orgnr":"980447588","navn":"Norlandia Tomms Hytter - En friluftsbarnehage","lat":59.98436,"lng":10.67245,"alder":"3 - 5","eierform":"Privat","antallBarn":36},{"orgnr":"980372278","navn":"Jeriko private friluftsbarnehage AS","lat":59.93509,"lng":10.88884,"alder":"1 - 5","eierform":"Privat","antallBarn":14},{"orgnr":"980287459","navn":"Trøste og Bære barnehage Nuf","lat":59.93509,"lng":10.88884,"alder":"1 - 5","eierform":"Privat","antallBarn":23},{"orgnr":"980209873","navn":"Riflegata barnehage","lat":59.94144,"lng":10.7637,"alder":"1 - 5","eierform":"Kommunal","antallBarn":37},{"orgnr":"980125629","navn":"Lindekroken Kanvas-barnehage","lat":59.93694,"lng":10.73706,"alder":"1 - 5","eierform":"Privat","antallBarn":89},{"orgnr":"980121933","navn":"Ullern Åpne barnehage","lat":59.92621,"lng":10.67216,"alder":"","eierform":"Kommunal","antallBarn":0},{"orgnr":"980033872","navn":"Humlen Montessori barnehage AS","lat":59.96314,"lng":10.6907,"alder":"1 - 5","eierform":"Privat","antallBarn":22},{"orgnr":"980031667","navn":"Stiftelsen Dokka barnehage","lat":59.92725,"lng":10.67128,"alder":"1 - 5","eierform":"Privat","antallBarn":70},{"orgnr":"979863799","navn":"Trollskogen barnehage Bjørndal","lat":59.8177,"lng":10.84068,"alder":"1 - 5","eierform":"Privat","antallBarn":72},{"orgnr":"979593198","navn":"Ullernkollen barnehage","lat":59.93594,"lng":10.64892,"alder":"1 - 5","eierform":"Kommunal","antallBarn":47},{"orgnr":"979592655","navn":"Badebakken barnehage","lat":59.94621,"lng":10.76298,"alder":"1 - 5","eierform":"Kommunal","antallBarn":52},{"orgnr":"979592485","navn":"Norlandia Myrertoppen barnehage","lat":59.96406,"lng":10.79374,"alder":"1 - 5","eierform":"Privat","antallBarn":82},{"orgnr":"979592388","navn":"Gulldalen barnehage","lat":59.9656,"lng":10.79658,"alder":"1 - 5","eierform":"Kommunal","antallBarn":53},{"orgnr":"979590598","navn":"Eftasåsen barnehage","lat":59.8927,"lng":10.84992,"alder":"1 - 5","eierform":"Kommunal","antallBarn":66},{"orgnr":"979590423","navn":"Solfridbakken barnehage","lat":59.90048,"lng":10.81212,"alder":"1 - 5","eierform":"Kommunal","antallBarn":73},{"orgnr":"979589484","navn":"Taranrød barnehage","lat":59.82153,"lng":10.84095,"alder":"1 - 5","eierform":"Kommunal","antallBarn":42},{"orgnr":"979589476","navn":"Kantarellen barnehage","lat":59.84893,"lng":10.81425,"alder":"1 - 5","eierform":"Kommunal","antallBarn":46},{"orgnr":"979589468","navn":"Slime Gård barnehage","lat":59.83166,"lng":10.83934,"alder":"1 - 5","eierform":"Kommunal","antallBarn":68},{"orgnr":"979588925","navn":"Breigata barnehage","lat":59.91397,"lng":10.76065,"alder":"1 - 5","eierform":"Kommunal","antallBarn":25},{"orgnr":"979588534","navn":"Oskar Braaten barnehage","lat":59.93262,"lng":10.76754,"alder":"1 - 5","eierform":"Kommunal","antallBarn":41},{"orgnr":"979587937","navn":"Rosenborg barnehage","lat":59.92598,"lng":10.72665,"alder":"1 - 5","eierform":"Kommunal","antallBarn":39},{"orgnr":"979587910","navn":"Gydas Vei barnehage","lat":59.93361,"lng":10.71568,"alder":"1 - 5","eierform":"Kommunal","antallBarn":61},{"orgnr":"979204965","navn":"Rustadsaga barnehage SA","lat":59.87188,"lng":10.84951,"alder":"1 - 5","eierform":"Privat","antallBarn":49},{"orgnr":"978603335","navn":"Solbakken barnehage SA","lat":59.85393,"lng":10.82346,"alder":"1 - 5","eierform":"Privat","antallBarn":60},{"orgnr":"977521386","navn":"Ankerhagen barnehage SA","lat":59.91335,"lng":10.72108,"alder":"1 - 5","eierform":"Privat","antallBarn":40},{"orgnr":"977408725","navn":"Kardemomme barnehage SA","lat":59.91246,"lng":10.78512,"alder":"1 - 5","eierform":"Privat","antallBarn":50},{"orgnr":"977370299","navn":"Bamsebo familiebarnehage AS","lat":59.94177,"lng":10.68522,"alder":"1 - 2","eierform":"Privat","antallBarn":8},{"orgnr":"977106265","navn":"Trollungene familiebarnehage AS","lat":59.89292,"lng":10.85711,"alder":"1 - 2","eierform":"Privat","antallBarn":8},{"orgnr":"976767675","navn":"Læringsverkstedet Årvollveien barnehage","lat":59.94569,"lng":10.81352,"alder":"1 - 5","eierform":"Privat","antallBarn":50},{"orgnr":"976736982","navn":"Symrahagen familiebarnehage","lat":59.87935,"lng":10.77994,"alder":"1 - 5","eierform":"Privat","antallBarn":9},{"orgnr":"976610695","navn":"Klatremus familiebarnehage","lat":59.94238,"lng":10.68466,"alder":"1 - 2","eierform":"Privat","antallBarn":4},{"orgnr":"976599136","navn":"Bever'n barnehage SA Samvirkeforetak","lat":59.9426,"lng":10.84919,"alder":"3 - 5","eierform":"Privat","antallBarn":20},{"orgnr":"976177843","navn":"Læringsverkstedet Slalåmveien barnehage","lat":59.93373,"lng":10.65305,"alder":"1 - 5","eierform":"Privat","antallBarn":60},{"orgnr":"976011716","navn":"Kragskogen barnehage SA","lat":59.9537,"lng":10.66063,"alder":"1 - 5","eierform":"Privat","antallBarn":66},{"orgnr":"975941183","navn":"Munkerudtoppen barnehage","lat":59.86008,"lng":10.81392,"alder":"1 - 5","eierform":"Privat","antallBarn":22},{"orgnr":"975325075","navn":"Bjerkedalen barnehage","lat":59.93978,"lng":10.8226,"alder":"1 - 5","eierform":"Kommunal","antallBarn":72},{"orgnr":"975325016","navn":"Grønland Torg barnehage","lat":59.91294,"lng":10.75988,"alder":"1 - 5","eierform":"Kommunal","antallBarn":60},{"orgnr":"975325008","navn":"Kirsebærjordet barnehage","lat":59.93557,"lng":10.72732,"alder":"1 - 5","eierform":"Kommunal","antallBarn":60},{"orgnr":"975323196","navn":"Åsenhagen barnehage","lat":59.93815,"lng":10.7719,"alder":"1 - 2","eierform":"Kommunal","antallBarn":24},{"orgnr":"975322122","navn":"Treskeveien barnehage","lat":59.89439,"lng":10.81849,"alder":"1 - 5","eierform":"Kommunal","antallBarn":94},{"orgnr":"975321614","navn":"Jettegryta barnehage","lat":59.85201,"lng":10.82855,"alder":"1 - 5","eierform":"Kommunal","antallBarn":64},{"orgnr":"975319989","navn":"Midtstuen Kanvas-barnehage","lat":59.96168,"lng":10.67892,"alder":"1 - 5","eierform":"Privat","antallBarn":56},{"orgnr":"975319970","navn":"Åstun barnehage","lat":59.8277,"lng":10.78817,"alder":"1 - 5","eierform":"Kommunal","antallBarn":53},{"orgnr":"975317544","navn":"Barnas Hus barnehage","lat":59.93071,"lng":10.76494,"alder":"1 - 5","eierform":"Kommunal","antallBarn":167},{"orgnr":"975317528","navn":"Heftyes barnehage","lat":59.93533,"lng":10.7395,"alder":"1 - 5","eierform":"Kommunal","antallBarn":105},{"orgnr":"975317161","navn":"Frydenlund barnehage","lat":59.93761,"lng":10.91358,"alder":"1 - 5","eierform":"Kommunal","antallBarn":54},{"orgnr":"975317145","navn":"Furustien barnehage","lat":59.94088,"lng":10.89538,"alder":"1 - 5","eierform":"Kommunal","antallBarn":54},{"orgnr":"975317137","navn":"Gransletta barnehage","lat":59.94503,"lng":10.90042,"alder":"1 - 5","eierform":"Kommunal","antallBarn":103},{"orgnr":"975317129","navn":"Kurland barnehage","lat":59.94202,"lng":10.8904,"alder":"1 - 5","eierform":"Kommunal","antallBarn":49},{"orgnr":"975317110","navn":"Lutvannskollen barnehage","lat":59.92618,"lng":10.87819,"alder":"1 - 5","eierform":"Kommunal","antallBarn":46},{"orgnr":"975317102","navn":"Plassen barnehage","lat":59.93326,"lng":10.8829,"alder":"1 - 5","eierform":"Kommunal","antallBarn":36},{"orgnr":"975317099","navn":"Smedbakken Fus barnehage AS","lat":59.9341,"lng":10.91765,"alder":"1 - 5","eierform":"Privat","antallBarn":58},{"orgnr":"975316947","navn":"Eplehagen Kanvas-barnehage","lat":59.95503,"lng":10.72101,"alder":"1 - 5","eierform":"Privat","antallBarn":49},{"orgnr":"975316793","navn":"Karen Aasumb barnehage","lat":59.96716,"lng":10.92189,"alder":"3 - 5","eierform":"Kommunal","antallBarn":30},{"orgnr":"975316688","navn":"Gartnerboligen barnehage","lat":59.86578,"lng":10.83897,"alder":"1 - 5","eierform":"Kommunal","antallBarn":52},{"orgnr":"975316661","navn":"Økern barnehage","lat":59.93199,"lng":10.80851,"alder":"1 - 5","eierform":"Kommunal","antallBarn":59},{"orgnr":"975316653","navn":"Sisiktoppen barnehage","lat":59.93906,"lng":10.83252,"alder":"1 - 5","eierform":"Kommunal","antallBarn":59},{"orgnr":"975316645","navn":"Refstad barnehage","lat":59.93604,"lng":10.8001,"alder":"1 - 5","eierform":"Kommunal","antallBarn":94},{"orgnr":"975316629","navn":"Tåsen barnehage","lat":59.94567,"lng":10.74278,"alder":"1 - 5","eierform":"Kommunal","antallBarn":108},{"orgnr":"975316572","navn":"Holmen Kanvas-barnehage","lat":59.94439,"lng":10.68567,"alder":"1 - 5","eierform":"Privat","antallBarn":44},{"orgnr":"975316564","navn":"Dalskroken barnehage","lat":59.94044,"lng":10.68717,"alder":"1 - 5","eierform":"Kommunal","antallBarn":80},{"orgnr":"975316556","navn":"Rønningen Kanvas-barnehage","lat":59.93775,"lng":10.64476,"alder":"1 - 5","eierform":"Privat","antallBarn":58},{"orgnr":"975316548","navn":"Jarbakken barnehage","lat":59.95298,"lng":10.65672,"alder":"1 - 5","eierform":"Kommunal","antallBarn":102},{"orgnr":"975316521","navn":"Liabakken barnehage","lat":59.96877,"lng":10.64309,"alder":"1 - 5","eierform":"Kommunal","antallBarn":48},{"orgnr":"975316483","navn":"Grindbakken barnehage","lat":59.96736,"lng":10.64752,"alder":"1 - 5","eierform":"Kommunal","antallBarn":53},{"orgnr":"975316475","navn":"Kjosjordet barnehage","lat":59.92648,"lng":10.64368,"alder":"1 - 5","eierform":"Kommunal","antallBarn":43},{"orgnr":"975316467","navn":"Casinetto barnehage","lat":59.92603,"lng":10.69258,"alder":"1 - 5","eierform":"Kommunal","antallBarn":63},{"orgnr":"975316459","navn":"Ullern barnehage","lat":59.92179,"lng":10.64038,"alder":"1 - 5","eierform":"Kommunal","antallBarn":51},{"orgnr":"975316440","navn":"Thaulow barnehage","lat":59.93053,"lng":10.70684,"alder":"1 - 5","eierform":"Kommunal","antallBarn":50},{"orgnr":"975316432","navn":"Møllefaret barnehage","lat":59.93932,"lng":10.63601,"alder":"1 - 5","eierform":"Kommunal","antallBarn":58},{"orgnr":"975316424","navn":"Solfjellet barnehage","lat":59.9216,"lng":10.85954,"alder":"1 - 5","eierform":"Kommunal","antallBarn":52},{"orgnr":"975316343","navn":"Åsbråten barnehage","lat":59.82553,"lng":10.784,"alder":"1 - 5","eierform":"Kommunal","antallBarn":55},{"orgnr":"975316327","navn":"Steinbråten naturbarnehage","lat":59.85164,"lng":10.82537,"alder":"1 - 5","eierform":"Kommunal","antallBarn":98},{"orgnr":"975316319","navn":"Sloreåsen barnehage","lat":59.84394,"lng":10.79468,"alder":"1 - 5","eierform":"Kommunal","antallBarn":53},{"orgnr":"975316300","navn":"Prinsdalsbråten barnehage","lat":59.82848,"lng":10.81172,"alder":"1 - 5","eierform":"Kommunal","antallBarn":53},{"orgnr":"975316297","navn":"Nyjordet barnehage","lat":59.82975,"lng":10.83943,"alder":"1 - 5","eierform":"Kommunal","antallBarn":53},{"orgnr":"975316270","navn":"Lofsrud barnehage","lat":59.84545,"lng":10.8275,"alder":"1 - 5","eierform":"Kommunal","antallBarn":52},{"orgnr":"975316246","navn":"Læringsverkstedet Hauketo barnehage","lat":59.84133,"lng":10.81199,"alder":"1 - 5","eierform":"Privat","antallBarn":63},{"orgnr":"975316238","navn":"Hallagerbakken barnehage","lat":59.83641,"lng":10.78817,"alder":"1 - 5","eierform":"Kommunal","antallBarn":53},{"orgnr":"975316211","navn":"Elverhøy barnehage","lat":59.84673,"lng":10.80774,"alder":"1 - 5","eierform":"Kommunal","antallBarn":52},{"orgnr":"975316203","navn":"Bjørnåsen barnehage","lat":59.83069,"lng":10.83302,"alder":"1 - 5","eierform":"Kommunal","antallBarn":54},{"orgnr":"975316149","navn":"Hurdalsgata barnehage","lat":59.90988,"lng":10.78099,"alder":"1 - 5","eierform":"Kommunal","antallBarn":27},{"orgnr":"975316084","navn":"Jordal barnehage","lat":59.90891,"lng":10.78536,"alder":"1 - 5","eierform":"Kommunal","antallBarn":54},{"orgnr":"975316068","navn":"Kampen barnehage","lat":59.91278,"lng":10.78477,"alder":"1 - 5","eierform":"Kommunal","antallBarn":80},{"orgnr":"975316041","navn":"Rygin barnehage","lat":59.89932,"lng":10.79963,"alder":"1 - 5","eierform":"Kommunal","antallBarn":66},{"orgnr":"975316033","navn":"Bauneveien barnehage","lat":59.89122,"lng":10.79701,"alder":"1 - 5","eierform":"Kommunal","antallBarn":102},{"orgnr":"975316025","navn":"Åssida barnehage","lat":59.87194,"lng":10.79953,"alder":"1 - 5","eierform":"Kommunal","antallBarn":63},{"orgnr":"975316017","navn":"Obersten barnehage","lat":59.8628,"lng":10.80854,"alder":"1 - 5","eierform":"Kommunal","antallBarn":66},{"orgnr":"975316009","navn":"Nordseter barnehage","lat":59.87039,"lng":10.79596,"alder":"1 - 5","eierform":"Kommunal","antallBarn":52},{"orgnr":"975315991","navn":"Veslefrikk Kanvas-barnehage","lat":59.93694,"lng":10.73706,"alder":"1 - 5","eierform":"Privat","antallBarn":55},{"orgnr":"975315967","navn":"Sami Manaid Gardi Cizas","lat":59.91922,"lng":10.77724,"alder":"1 - 5","eierform":"Kommunal","antallBarn":27},{"orgnr":"975315932","navn":"Ola Narr barnehage","lat":59.92461,"lng":10.78114,"alder":"1 - 5","eierform":"Kommunal","antallBarn":64},{"orgnr":"975315916","navn":"Hammerfestgata barnehage","lat":59.92553,"lng":10.77241,"alder":"1 - 5","eierform":"Kommunal","antallBarn":53},{"orgnr":"975315908","navn":"Grünerhagen barnehage","lat":59.92209,"lng":10.75601,"alder":"1 - 5","eierform":"Kommunal","antallBarn":48},{"orgnr":"975315894","navn":"Bjølsenhellinga barnehage","lat":59.94101,"lng":10.75788,"alder":"1 - 5","eierform":"Kommunal","antallBarn":38},{"orgnr":"975315886","navn":"Mor Gohjertas barnehage","lat":59.94535,"lng":10.76419,"alder":"1 - 5","eierform":"Kommunal","antallBarn":96},{"orgnr":"975315878","navn":"Lilleborg barnehage","lat":59.93868,"lng":10.77137,"alder":"1 - 5","eierform":"Kommunal","antallBarn":65},{"orgnr":"975315495","navn":"Nordre Ås barnehage","lat":59.83134,"lng":10.79072,"alder":"1 - 5","eierform":"Kommunal","antallBarn":63},{"orgnr":"975314960","navn":"Universitetets barnehage","lat":59.94108,"lng":10.71528,"alder":"1 - 5","eierform":"Annet","antallBarn":61},{"orgnr":"975314456","navn":"Bøler Menighets barnehage","lat":59.88274,"lng":10.84045,"alder":"1 - 5","eierform":"Privat","antallBarn":29},{"orgnr":"975299287","navn":"Helenes barnehage","lat":59.95412,"lng":10.69963,"alder":"1 - 5","eierform":"Kommunal","antallBarn":78},{"orgnr":"975299260","navn":"Lerdal barnehage","lat":59.83651,"lng":10.8059,"alder":"1 - 5","eierform":"Kommunal","antallBarn":66},{"orgnr":"975298809","navn":"Lindebergstua Kanvas-barnehage","lat":59.93056,"lng":10.87817,"alder":"1 - 5","eierform":"Privat","antallBarn":59},{"orgnr":"975298388","navn":"Øvre Høybråten barnehage","lat":59.94331,"lng":10.92067,"alder":"1 - 5","eierform":"Kommunal","antallBarn":67},{"orgnr":"975298361","navn":"Vestlitoppen barnehage","lat":59.97298,"lng":10.93004,"alder":"1 - 5","eierform":"Kommunal","antallBarn":54},{"orgnr":"975298353","navn":"Vestlisvingen barnehage","lat":59.96863,"lng":10.92601,"alder":"1 - 5","eierform":"Kommunal","antallBarn":54},{"orgnr":"975298337","navn":"Vestliberget barnehage","lat":59.97281,"lng":10.92715,"alder":"1 - 5","eierform":"Kommunal","antallBarn":40},{"orgnr":"975298329","navn":"Vestjordet barnehage","lat":59.94958,"lng":10.64963,"alder":"1 - 5","eierform":"Kommunal","antallBarn":53},{"orgnr":"975298310","navn":"Vesthellinga barnehage","lat":59.95889,"lng":10.93404,"alder":"1 - 5","eierform":"Kommunal","antallBarn":54},{"orgnr":"975298280","navn":"Tveteråsen barnehage","lat":59.88516,"lng":10.85334,"alder":"1 - 5","eierform":"Kommunal","antallBarn":54},{"orgnr":"975298272","navn":"Trosterud senter barnehage","lat":59.92652,"lng":10.86613,"alder":"3 - 5","eierform":"Kommunal","antallBarn":14},{"orgnr":"975298264","navn":"Tokerudåsen barnehage","lat":59.96335,"lng":10.92748,"alder":"1 - 5","eierform":"Kommunal","antallBarn":53},{"orgnr":"975298256","navn":"Tokerudtoppen barnehage","lat":59.96347,"lng":10.92811,"alder":"1 - 5","eierform":"Kommunal","antallBarn":54},{"orgnr":"975298221","navn":"Stovnerhøgda barnehage","lat":59.96113,"lng":10.93117,"alder":"1 - 5","eierform":"Kommunal","antallBarn":54},{"orgnr":"975298205","navn":"Stjernemyra barnehage","lat":59.92023,"lng":10.8564,"alder":"1 - 5","eierform":"Kommunal","antallBarn":47},{"orgnr":"975298191","navn":"Sofienbergparken barnehage","lat":59.92233,"lng":10.76896,"alder":"1 - 5","eierform":"Kommunal","antallBarn":93},{"orgnr":"975298183","navn":"Smedstua Gård barnehage","lat":59.95429,"lng":10.91624,"alder":"1 - 5","eierform":"Kommunal","antallBarn":50},{"orgnr":"975298159","navn":"Sandbakken barnehage","lat":59.94482,"lng":10.82808,"alder":"1 - 5","eierform":"Kommunal","antallBarn":48},{"orgnr":"975298108","navn":"Ospa barnehage","lat":59.93056,"lng":10.88343,"alder":"1 - 5","eierform":"Kommunal","antallBarn":52},{"orgnr":"975298094","navn":"Rønningjordet barnehage","lat":59.89407,"lng":10.83649,"alder":"1 - 5","eierform":"Kommunal","antallBarn":153},{"orgnr":"975298086","navn":"Oppsal Samfunnshus barnehage","lat":59.89413,"lng":10.84228,"alder":"1 - 5","eierform":"Kommunal","antallBarn":72},{"orgnr":"975298078","navn":"Ole Brumm barnehage","lat":59.95175,"lng":10.90947,"alder":"1 - 5","eierform":"Kommunal","antallBarn":54},{"orgnr":"975298051","navn":"Munkerudsletta barnehage","lat":59.85316,"lng":10.8163,"alder":"1 - 5","eierform":"Kommunal","antallBarn":54},{"orgnr":"975298027","navn":"Maridalsveien barnehage","lat":59.93686,"lng":10.75608,"alder":"1 - 5","eierform":"Kommunal","antallBarn":65},{"orgnr":"975298019","navn":"Lohøgda barnehage","lat":59.9173,"lng":10.84157,"alder":"1 - 5","eierform":"Kommunal","antallBarn":37},{"orgnr":"975298000","navn":"Linjen barnehage","lat":59.9512,"lng":10.90811,"alder":"1 - 5","eierform":"Kommunal","antallBarn":53},{"orgnr":"975297993","navn":"Linderud Gård barnehage","lat":59.94202,"lng":10.83573,"alder":"1 - 5","eierform":"Kommunal","antallBarn":54},{"orgnr":"975297985","navn":"Lindebergskogen barnehage","lat":59.93169,"lng":10.87687,"alder":"1 - 5","eierform":"Kommunal","antallBarn":53},{"orgnr":"975297977","navn":"Lilleslottet barnehage","lat":59.97033,"lng":10.90312,"alder":"1 - 5","eierform":"Kommunal","antallBarn":93},{"orgnr":"975297969","navn":"Landingsveien barnehage","lat":59.95247,"lng":10.65276,"alder":"1 - 5","eierform":"Kommunal","antallBarn":51},{"orgnr":"975297950","navn":"Karlstua barnehage","lat":59.92945,"lng":10.88564,"alder":"1 - 5","eierform":"Kommunal","antallBarn":36},{"orgnr":"975297934","navn":"Karihaugen barnehage","lat":59.9354,"lng":10.92389,"alder":"1 - 5","eierform":"Kommunal","antallBarn":81},{"orgnr":"975297896","navn":"Humlebakken Familiehage åpen barnehage","lat":59.97021,"lng":10.89663,"alder":"","eierform":"Kommunal","antallBarn":0},{"orgnr":"975297861","navn":"Hjelmsgate barnehage","lat":59.92499,"lng":10.72173,"alder":"1 - 5","eierform":"Kommunal","antallBarn":86},{"orgnr":"975297845","navn":"Haugensjordet barnehage","lat":59.96194,"lng":10.78746,"alder":"1 - 5","eierform":"Kommunal","antallBarn":70},{"orgnr":"975297837","navn":"Haugen barnehage","lat":59.95207,"lng":10.90861,"alder":"1 - 5","eierform":"Kommunal","antallBarn":53},{"orgnr":"975297829","navn":"Hamna barnehage","lat":59.92351,"lng":10.71718,"alder":"1 - 5","eierform":"Kommunal","antallBarn":51},{"orgnr":"975297810","navn":"Hamborg barnehage","lat":59.94889,"lng":10.64984,"alder":"1 - 5","eierform":"Kommunal","antallBarn":63},{"orgnr":"975297802","navn":"Hallenparken barnehage","lat":59.93031,"lng":10.76416,"alder":"1 - 5","eierform":"Kommunal","antallBarn":88},{"orgnr":"975297764","navn":"Lia barnehage","lat":59.93605,"lng":10.92043,"alder":"1 - 5","eierform":"Kommunal","antallBarn":129},{"orgnr":"975297713","navn":"Norlandia Fagerholt barnehage","lat":59.92294,"lng":10.86693,"alder":"1 - 5","eierform":"Privat","antallBarn":86},{"orgnr":"975297705","navn":"Disengrenda barnehage","lat":59.94308,"lng":10.7966,"alder":"1 - 5","eierform":"Kommunal","antallBarn":94},{"orgnr":"975297691","navn":"Bråtenalleen barnehage","lat":59.95146,"lng":10.77787,"alder":"1 - 5","eierform":"Kommunal","antallBarn":108},{"orgnr":"975297683","navn":"Bredtvet barnehage","lat":59.9471,"lng":10.8586,"alder":"1 - 5","eierform":"Kommunal","antallBarn":50},{"orgnr":"975297675","navn":"Bjørnheim barnehage","lat":59.94313,"lng":10.90595,"alder":"1 - 5","eierform":"Kommunal","antallBarn":49},{"orgnr":"975297659","navn":"Bergebo barnehage","lat":59.90043,"lng":10.68009,"alder":"1 - 5","eierform":"Kommunal","antallBarn":52},{"orgnr":"975291901","navn":"Sandåsveien barnehage","lat":59.9536,"lng":10.85759,"alder":"1 - 5","eierform":"Kommunal","antallBarn":47},{"orgnr":"975291898","navn":"Tiurleiken barnehage","lat":59.96402,"lng":10.8902,"alder":"1 - 5","eierform":"Kommunal","antallBarn":53},{"orgnr":"975291855","navn":"Åkeberg barnehage","lat":59.90819,"lng":10.77815,"alder":"1 - 5","eierform":"Kommunal","antallBarn":92},{"orgnr":"975291847","navn":"Årvoll barnehage","lat":59.94563,"lng":10.81188,"alder":"1 - 5","eierform":"Kommunal","antallBarn":27},{"orgnr":"975291820","navn":"Vestlisletta barnehage","lat":59.96386,"lng":10.92213,"alder":"1 - 5","eierform":"Kommunal","antallBarn":57},{"orgnr":"975291804","navn":"Valle barnehage","lat":59.91919,"lng":10.8018,"alder":"1 - 5","eierform":"Kommunal","antallBarn":40},{"orgnr":"975291766","navn":"Norlandia Sørhellinga barnehage","lat":59.912,"lng":10.83327,"alder":"1 - 5","eierform":"Privat","antallBarn":101},{"orgnr":"975291758","navn":"Storgården barnehage","lat":59.89531,"lng":10.80866,"alder":"1 - 5","eierform":"Kommunal","antallBarn":130},{"orgnr":"975291731","navn":"Smalvollskogen barnehage","lat":59.9184,"lng":10.84423,"alder":"1 - 5","eierform":"Kommunal","antallBarn":46},{"orgnr":"975291723","navn":"Sletta barnehage","lat":59.94976,"lng":10.8211,"alder":"1 - 5","eierform":"Kommunal","antallBarn":57},{"orgnr":"975291715","navn":"Elmholt barnehage","lat":59.92434,"lng":10.66779,"alder":"1 - 5","eierform":"Kommunal","antallBarn":65},{"orgnr":"975291707","navn":"Skillebekk barnehage","lat":59.91439,"lng":10.71368,"alder":"1 - 5","eierform":"Kommunal","antallBarn":68},{"orgnr":"975291693","navn":"Sinsen barnehage","lat":59.93417,"lng":10.78504,"alder":"1 - 5","eierform":"Kommunal","antallBarn":131},{"orgnr":"975291669","navn":"Rødtvet barnehage","lat":59.95349,"lng":10.85597,"alder":"1 - 5","eierform":"Kommunal","antallBarn":126},{"orgnr":"975291650","navn":"Rodeløkka barnehage","lat":59.92307,"lng":10.76986,"alder":"1 - 5","eierform":"Kommunal","antallBarn":64},{"orgnr":"975291642","navn":"Ravnkollen barnehage","lat":59.96791,"lng":10.89274,"alder":"1 - 5","eierform":"Kommunal","antallBarn":77},{"orgnr":"975291626","navn":"Mellombølgen barnehage","lat":59.8656,"lng":10.81748,"alder":"1 - 5","eierform":"Kommunal","antallBarn":216},{"orgnr":"975291618","navn":"Orelia barnehage","lat":59.93625,"lng":10.81486,"alder":"1 - 5","eierform":"Kommunal","antallBarn":28},{"orgnr":"975291596","navn":"Nylænde barnehage","lat":59.87807,"lng":10.81435,"alder":"1 - 5","eierform":"Kommunal","antallBarn":54},{"orgnr":"975291561","navn":"Munkelia barnehage","lat":59.86414,"lng":10.81413,"alder":"1 - 5","eierform":"Kommunal","antallBarn":29},{"orgnr":"975291553","navn":"Marmorberget barnehage","lat":59.87416,"lng":10.81998,"alder":"1 - 5","eierform":"Kommunal","antallBarn":81},{"orgnr":"975291545","navn":"Marienlyst Gård barnehage","lat":59.93485,"lng":10.72439,"alder":"1 - 5","eierform":"Kommunal","antallBarn":30},{"orgnr":"975291537","navn":"Manglerud barnehage","lat":59.90121,"lng":10.80492,"alder":"1 - 5","eierform":"Kommunal","antallBarn":64},{"orgnr":"975291510","navn":"Lille Ekeberg barnehage","lat":59.8982,"lng":10.78608,"alder":"1 - 5","eierform":"Kommunal","antallBarn":135},{"orgnr":"975291502","navn":"Lilleaker barnehage","lat":59.9236,"lng":10.63148,"alder":"1 - 5","eierform":"Kommunal","antallBarn":46},{"orgnr":"975291499","navn":"Langmyrgrenda barnehage","lat":59.9645,"lng":10.74905,"alder":"1 - 5","eierform":"Kommunal","antallBarn":54},{"orgnr":"975291472","navn":"Knausen barnehage","lat":59.87651,"lng":10.80619,"alder":"1 - 5","eierform":"Kommunal","antallBarn":124},{"orgnr":"975291456","navn":"Hovin barnehage","lat":59.92229,"lng":10.79823,"alder":"1 - 5","eierform":"Kommunal","antallBarn":65},{"orgnr":"975291421","navn":"Haugerud Sentrum barnehage","lat":59.92183,"lng":10.85805,"alder":"1 - 5","eierform":"Kommunal","antallBarn":71},{"orgnr":"975291413","navn":"Haugenstua barnehage","lat":59.95163,"lng":10.91437,"alder":"1 - 5","eierform":"Kommunal","antallBarn":72},{"orgnr":"975291405","navn":"Hammersborg barnehage","lat":59.92016,"lng":10.74706,"alder":"1 - 5","eierform":"Kommunal","antallBarn":53},{"orgnr":"975291383","navn":"Fossumenga og Fossumhagen barnehager","lat":59.95908,"lng":10.91745,"alder":"1 - 5","eierform":"Kommunal","antallBarn":134},{"orgnr":"975291375","navn":"Flaen barnehage","lat":59.95374,"lng":10.87267,"alder":"1 - 5","eierform":"Kommunal","antallBarn":79},{"orgnr":"975291359","navn":"Enerhaugen barnehage","lat":59.91378,"lng":10.76824,"alder":"1 - 5","eierform":"Kommunal","antallBarn":27},{"orgnr":"975291340","navn":"Dronning Louises barnehage","lat":59.93838,"lng":10.75104,"alder":"1 - 5","eierform":"Kommunal","antallBarn":30},{"orgnr":"975291332","navn":"Bøler Sentrum barnehage","lat":59.88255,"lng":10.845,"alder":"1 - 5","eierform":"Kommunal","antallBarn":48},{"orgnr":"975291308","navn":"Bogerud Gård barnehage","lat":59.8774,"lng":10.84001,"alder":"1 - 5","eierform":"Kommunal","antallBarn":133},{"orgnr":"975291294","navn":"Bjølsen barnehage","lat":59.94172,"lng":10.75709,"alder":"1 - 5","eierform":"Kommunal","antallBarn":43},{"orgnr":"975291278","navn":"Ammerudlia barnehage","lat":59.96251,"lng":10.87835,"alder":"1 - 5","eierform":"Kommunal","antallBarn":134},{"orgnr":"975291251","navn":"Ammerudgrenda barnehage","lat":59.96499,"lng":10.87745,"alder":"1 - 5","eierform":"Kommunal","antallBarn":54},{"orgnr":"975291243","navn":"Ammerudenga barnehage","lat":59.96407,"lng":10.87415,"alder":"1 - 5","eierform":"Kommunal","antallBarn":116},{"orgnr":"975290875","navn":"Lille Langerud barnehage","lat":59.87867,"lng":10.82916,"alder":"3 - 5","eierform":"Kommunal","antallBarn":12},{"orgnr":"975290867","navn":"Bakkehavn barnehage","lat":59.87346,"lng":10.83209,"alder":"1 - 5","eierform":"Kommunal","antallBarn":44},{"orgnr":"975211908","navn":"Gaustadsnippen barnehage","lat":59.95218,"lng":10.73035,"alder":"1 - 5","eierform":"Privat","antallBarn":68},{"orgnr":"975016838","navn":"Uranienborg barnehage","lat":59.9217,"lng":10.72212,"alder":"1 - 5","eierform":"Kommunal","antallBarn":30},{"orgnr":"975016811","navn":"Tyrihans barnehage","lat":59.8794,"lng":10.80849,"alder":"1 - 5","eierform":"Kommunal","antallBarn":58},{"orgnr":"975016773","navn":"Sportsplassen barnehage","lat":59.88624,"lng":10.77467,"alder":"1 - 5","eierform":"Kommunal","antallBarn":30},{"orgnr":"975016757","navn":"Nedre Bekkelaget barnehage","lat":59.87947,"lng":10.76776,"alder":"1 - 5","eierform":"Kommunal","antallBarn":60},{"orgnr":"975016749","navn":"Mølleplassen Kanvas-barnehage","lat":59.95461,"lng":10.63306,"alder":"3 - 5","eierform":"Privat","antallBarn":39},{"orgnr":"975016730","navn":"Mærradalen barnehage","lat":59.92839,"lng":10.65652,"alder":"1 - 5","eierform":"Privat","antallBarn":25},{"orgnr":"975016676","navn":"Frantsebråten barnehage","lat":59.95159,"lng":10.6595,"alder":"1 - 5","eierform":"Kommunal","antallBarn":87},{"orgnr":"975016633","navn":"Østensjø Kanvas-barnehage","lat":59.90269,"lng":10.83406,"alder":"1 - 5","eierform":"Privat","antallBarn":63},{"orgnr":"975016617","navn":"Skredderstua barnehage","lat":59.85078,"lng":10.79169,"alder":"1 - 5","eierform":"Kommunal","antallBarn":30},{"orgnr":"975016595","navn":"Rektorhaugen Kanvas-barnehage","lat":59.95225,"lng":10.7384,"alder":"1 - 5","eierform":"Privat","antallBarn":96},{"orgnr":"975016587","navn":"Nordre Åsen Kanvas-barnehage","lat":59.94086,"lng":10.78405,"alder":"1 - 5","eierform":"Privat","antallBarn":40},{"orgnr":"975016579","navn":"Myrer Kanvas-barnehage","lat":59.96113,"lng":10.78944,"alder":"1 - 5","eierform":"Privat","antallBarn":53},{"orgnr":"975016560","navn":"Keyserløkka barnehage","lat":59.92314,"lng":10.78502,"alder":"3 - 5","eierform":"Kommunal","antallBarn":36},{"orgnr":"975016552","navn":"Kastellterrassen Kanvas-barnehage","lat":59.86711,"lng":10.80175,"alder":"1 - 5","eierform":"Privat","antallBarn":32},{"orgnr":"975016544","navn":"Fagerborggaten barnehage","lat":59.92986,"lng":10.72667,"alder":"1 - 5","eierform":"Kommunal","antallBarn":71},{"orgnr":"975016536","navn":"Blokkajordet barnehage","lat":59.92489,"lng":10.64913,"alder":"1 - 5","eierform":"Kommunal","antallBarn":78},{"orgnr":"975016528","navn":"Askeladden barnehage","lat":59.93651,"lng":10.77765,"alder":"1 - 5","eierform":"Kommunal","antallBarn":45},{"orgnr":"975006271","navn":"Tonsenhagen barnehage AS","lat":59.94536,"lng":10.82515,"alder":"1 - 5","eierform":"Privat","antallBarn":32},{"orgnr":"974832348","navn":"Stjerneblokkveien private barnehage AS","lat":59.95076,"lng":10.89025,"alder":"1 - 5","eierform":"Privat","antallBarn":11},{"orgnr":"974824299","navn":"Hellerud barnehage","lat":59.91582,"lng":10.85566,"alder":"1 - 5","eierform":"Privat","antallBarn":44},{"orgnr":"974797585","navn":"Diakonhjemmet barnehage Steinerud AS","lat":59.9381,"lng":10.70442,"alder":"1 - 5","eierform":"Privat","antallBarn":60},{"orgnr":"974797127","navn":"Bakkehaugen barnehage SA","lat":59.94717,"lng":10.75525,"alder":"1 - 5","eierform":"Privat","antallBarn":36},{"orgnr":"974796732","navn":"Bekkelaget Kirkes barnehage","lat":59.88634,"lng":10.78656,"alder":"1 - 5","eierform":"Privat","antallBarn":39},{"orgnr":"974726742","navn":"Nordberg barnehage","lat":59.96095,"lng":10.74432,"alder":"1 - 5","eierform":"Kommunal","antallBarn":120},{"orgnr":"974725142","navn":"Schafteløkken Menighets barnehage","lat":59.92099,"lng":10.70297,"alder":"1 - 5","eierform":"Privat","antallBarn":26},{"orgnr":"974722232","navn":"Haugenstua Skoles barnehage B/A","lat":59.95438,"lng":10.91867,"alder":"1 - 5","eierform":"Privat","antallBarn":41},{"orgnr":"974716798","navn":"Hompetitten Kanvas-barnehage","lat":59.9547,"lng":10.72126,"alder":"1 - 5","eierform":"Privat","antallBarn":51},{"orgnr":"974714728","navn":"Malmøya Husmorlag","lat":59.87107,"lng":10.75695,"alder":"1 - 5","eierform":"Privat","antallBarn":24},{"orgnr":"974703416","navn":"Sinsen Kirkes barnehage","lat":59.93201,"lng":10.78762,"alder":"1 - 5","eierform":"Privat","antallBarn":25},{"orgnr":"974703408","navn":"Ullern menighetsbarnehage Holgerslyst","lat":59.92442,"lng":10.6541,"alder":"1 - 5","eierform":"Privat","antallBarn":40},{"orgnr":"974703386","navn":"Røa menighetsbarnehage","lat":59.94992,"lng":10.6437,"alder":"1 - 5","eierform":"Privat","antallBarn":84},{"orgnr":"974703351","navn":"Fagerborg menighetsbarnehage","lat":59.93279,"lng":10.7294,"alder":"1 - 5","eierform":"Privat","antallBarn":68},{"orgnr":"974703009","navn":"Ljan Kirkes barnehage","lat":59.8458,"lng":10.78503,"alder":"1 - 5","eierform":"Privat","antallBarn":31},{"orgnr":"974702843","navn":"Nordberg menighetsbarnehage","lat":59.96306,"lng":10.74264,"alder":"1 - 5","eierform":"Privat","antallBarn":30},{"orgnr":"974591081","navn":"Voldsløkka barnehage for Hørselshemmede","lat":59.94128,"lng":10.74928,"alder":"1 - 5","eierform":"Kommunal","antallBarn":41},{"orgnr":"974379422","navn":"Skullerudhøgda barnehage","lat":59.86774,"lng":10.83756,"alder":"1 - 5","eierform":"Privat","antallBarn":56},{"orgnr":"974322889","navn":"Gårdstunet barnehage","lat":59.89577,"lng":10.81312,"alder":"1 - 5","eierform":"Privat","antallBarn":50},{"orgnr":"974294443","navn":"Grefsen Kirkes barnehage","lat":59.95479,"lng":10.77667,"alder":"1 - 5","eierform":"Privat","antallBarn":31},{"orgnr":"974207540","navn":"Læringsverkstedet Bryn barnehage","lat":59.91602,"lng":10.82553,"alder":"1 - 5","eierform":"Privat","antallBarn":70},{"orgnr":"974204762","navn":"Fridheim barnehage AS","lat":59.924,"lng":10.71735,"alder":"1 - 5","eierform":"Privat","antallBarn":74},{"orgnr":"974201844","navn":"Havnabakken barnehage SA","lat":59.9626,"lng":10.75225,"alder":"1 - 5","eierform":"Privat","antallBarn":36},{"orgnr":"974188120","navn":"Casa Dei Bambini","lat":59.96382,"lng":10.69291,"alder":"1 - 5","eierform":"Privat","antallBarn":22},{"orgnr":"974183455","navn":"Frogner International Pre-School","lat":59.91695,"lng":10.70534,"alder":"3 - 5","eierform":"Privat","antallBarn":48},{"orgnr":"974183412","navn":"Treklang montessoribarnehage","lat":59.92411,"lng":10.72708,"alder":"1 - 5","eierform":"Privat","antallBarn":31},{"orgnr":"974002310","navn":"Christiania Barnehave Høybråten AS","lat":59.94703,"lng":10.90474,"alder":"1 - 5","eierform":"Privat","antallBarn":55},{"orgnr":"973964119","navn":"Tingeliten Kanvas-barnehage","lat":59.92144,"lng":10.67136,"alder":"1 - 5","eierform":"Privat","antallBarn":36},{"orgnr":"973949608","navn":"Østensjøstua barnehage SA","lat":59.87484,"lng":10.84142,"alder":"1 - 5","eierform":"Privat","antallBarn":43},{"orgnr":"973906887","navn":"Hvitveisen barnehage AS","lat":59.93983,"lng":10.70721,"alder":"1 - 5","eierform":"Privat","antallBarn":36},{"orgnr":"973815903","navn":"Barnebo barnehage","lat":59.94348,"lng":10.71578,"alder":"1 - 5","eierform":"Privat","antallBarn":48},{"orgnr":"973804049","navn":"Grønland Urtehagen barnehager AS","lat":59.91496,"lng":10.76199,"alder":"1 - 5","eierform":"Privat","antallBarn":87},{"orgnr":"973798103","navn":"Ulvestua barnehage SA","lat":60.01775,"lng":10.61298,"alder":"1 - 5","eierform":"Privat","antallBarn":29},{"orgnr":"973782975","navn":"Bøler Åpne barnehage","lat":59.8828,"lng":10.84401,"alder":"","eierform":"Privat","antallBarn":0},{"orgnr":"973761773","navn":"Barnehagenvår Sofus AS","lat":59.9409,"lng":10.81839,"alder":"1 - 5","eierform":"Privat","antallBarn":40},{"orgnr":"973512560","navn":"Læringsverkstedet Haugerudhagan barnehage","lat":59.91919,"lng":10.85057,"alder":"1 - 5","eierform":"Privat","antallBarn":67},{"orgnr":"973501879","navn":"Skøyen Terrasse barnehage Sti","lat":59.92685,"lng":10.6796,"alder":"1 - 5","eierform":"Privat","antallBarn":41},{"orgnr":"973501704","navn":"Starveien barnehage SA","lat":59.94275,"lng":10.9348,"alder":"1 - 5","eierform":"Privat","antallBarn":46},{"orgnr":"973501593","navn":"Christiania Barnehave Bjørndal AS","lat":59.82575,"lng":10.83814,"alder":"1 - 5","eierform":"Privat","antallBarn":54},{"orgnr":"973501453","navn":"Nordraaksgate barnehage Al","lat":59.92268,"lng":10.70871,"alder":"1 - 5","eierform":"Privat","antallBarn":29},{"orgnr":"973494724","navn":"Bråten barnehage SA","lat":59.86645,"lng":10.79211,"alder":"1 - 5","eierform":"Privat","antallBarn":63},{"orgnr":"973489844","navn":"Lillomarka Kanvas-barnehage","lat":59.9701,"lng":10.87648,"alder":"1 - 5","eierform":"Privat","antallBarn":35},{"orgnr":"973487523","navn":"Store Ljan barnehage SA","lat":59.84186,"lng":10.78184,"alder":"1 - 5","eierform":"Privat","antallBarn":62},{"orgnr":"973486063","navn":"Munik barnehage","lat":59.90962,"lng":10.78789,"alder":"1 - 5","eierform":"Privat","antallBarn":19},{"orgnr":"973486055","navn":"Mangelberget barnehage","lat":59.89397,"lng":10.82217,"alder":"1 - 5","eierform":"Privat","antallBarn":29},{"orgnr":"973486047","navn":"Giske barnehage","lat":59.94384,"lng":10.69005,"alder":"1 - 5","eierform":"Privat","antallBarn":14},{"orgnr":"973483617","navn":"Hellerudtoppen barnehage","lat":59.9108,"lng":10.85989,"alder":"1 - 5","eierform":"Privat","antallBarn":15},{"orgnr":"973479881","navn":"Nordstrand Kirkes barnehage","lat":59.85852,"lng":10.80304,"alder":"1 - 5","eierform":"Privat","antallBarn":45},{"orgnr":"973472496","navn":"Godlia barnehage","lat":59.9086,"lng":10.83869,"alder":"1 - 5","eierform":"Privat","antallBarn":36},{"orgnr":"973472437","navn":"Davinas AS","lat":59.95387,"lng":10.69078,"alder":"1 - 5","eierform":"Privat","antallBarn":48},{"orgnr":"973471708","navn":"Hamborgplassen barnehage","lat":59.96248,"lng":10.75043,"alder":"1 - 5","eierform":"Privat","antallBarn":33},{"orgnr":"973471198","navn":"Linden steinerbarnehage","lat":59.93174,"lng":10.6766,"alder":"1 - 5","eierform":"Privat","antallBarn":32},{"orgnr":"973469517","navn":"Kongsveien barnehage AS","lat":59.88564,"lng":10.77393,"alder":"1 - 5","eierform":"Privat","antallBarn":110},{"orgnr":"973469320","navn":"Den Jødiske barnehage","lat":59.92562,"lng":10.74305,"alder":"1 - 5","eierform":"Privat","antallBarn":34},{"orgnr":"973464922","navn":"Solrosen steinerbarnehage AS","lat":59.91628,"lng":10.71804,"alder":"1 - 5","eierform":"Privat","antallBarn":16},{"orgnr":"973461389","navn":"Hoffsgrenda barnehage","lat":59.92706,"lng":10.68182,"alder":"1 - 5","eierform":"Privat","antallBarn":17},{"orgnr":"973461370","navn":"Sollerud barnehage SA","lat":59.91861,"lng":10.64199,"alder":"1 - 5","eierform":"Privat","antallBarn":33},{"orgnr":"973457675","navn":"Stilla barnehage","lat":59.96558,"lng":10.77904,"alder":"1 - 5","eierform":"Privat","antallBarn":38},{"orgnr":"973457497","navn":"Fossekallen barnehage Sti","lat":59.95494,"lng":10.64083,"alder":"1 - 5","eierform":"Privat","antallBarn":27},{"orgnr":"973457462","navn":"Blåbærskogen barnehage","lat":59.96146,"lng":10.68414,"alder":"1 - 5","eierform":"Privat","antallBarn":22},{"orgnr":"973457403","navn":"Damplassen barnehage","lat":59.94415,"lng":10.73489,"alder":"1 - 5","eierform":"Privat","antallBarn":30},{"orgnr":"973457322","navn":"Svenstuen Barnehave","lat":59.95671,"lng":10.68773,"alder":"1 - 5","eierform":"Privat","antallBarn":38},{"orgnr":"973457292","navn":"Nydalen barnehage SA","lat":59.95281,"lng":10.76038,"alder":"1 - 5","eierform":"Privat","antallBarn":32},{"orgnr":"973455036","navn":"Vækerø Gård Kanvas-barnehage","lat":59.91512,"lng":10.65466,"alder":"1 - 5","eierform":"Privat","antallBarn":38},{"orgnr":"973446584","navn":"Stallen barnehage SA","lat":59.92493,"lng":10.70708,"alder":"1 - 5","eierform":"Privat","antallBarn":28},{"orgnr":"973446525","navn":"Nedre Silkestrå barnehage Sti","lat":59.92824,"lng":10.68375,"alder":"1 - 5","eierform":"Privat","antallBarn":18},{"orgnr":"973390953","navn":"Stiftelsen Ullevålsletta barnehage","lat":59.95073,"lng":10.73318,"alder":"1 - 5","eierform":"Privat","antallBarn":25},{"orgnr":"973382691","navn":"Husebygrenda barnehage","lat":59.94346,"lng":10.66426,"alder":"3 - 5","eierform":"Privat","antallBarn":18},{"orgnr":"973357360","navn":"Tåsen Skoles barnehage SA","lat":59.95317,"lng":10.75146,"alder":"1 - 5","eierform":"Privat","antallBarn":27},{"orgnr":"973351273","navn":"Eikenøtten barnehage","lat":59.94477,"lng":10.74733,"alder":"1 - 5","eierform":"Privat","antallBarn":16},{"orgnr":"973342355","navn":"Eplekneika barnehage SA","lat":59.85835,"lng":10.79331,"alder":"1 - 5","eierform":"Privat","antallBarn":27},{"orgnr":"973281216","navn":"Nordre Skøyen barnehage SA","lat":59.90762,"lng":10.82757,"alder":"1 - 5","eierform":"Privat","antallBarn":16},{"orgnr":"973270222","navn":"Nrk Barnehagen Oslo SA","lat":59.93472,"lng":10.71966,"alder":"1 - 5","eierform":"Privat","antallBarn":45},{"orgnr":"973111965","navn":"Teisentoppen, Frelsesarmeens barnehage i Oslo AS","lat":59.91801,"lng":10.81771,"alder":"1 - 5","eierform":"Privat","antallBarn":189},{"orgnr":"973107690","navn":"Skovheim Kanvas-barnehage","lat":59.8651,"lng":10.79739,"alder":"1 - 5","eierform":"Privat","antallBarn":65},{"orgnr":"973076515","navn":"Akersveien Kanvas-barnehage","lat":59.923,"lng":10.74778,"alder":"1 - 5","eierform":"Privat","antallBarn":50},{"orgnr":"973076434","navn":"Svartdalsparken Kanvas-barnehage","lat":59.89784,"lng":10.80225,"alder":"1 - 5","eierform":"Privat","antallBarn":70},{"orgnr":"973076418","navn":"Preståsen Kanvas-barnehage","lat":59.82285,"lng":10.83958,"alder":"1 - 5","eierform":"Privat","antallBarn":58},{"orgnr":"973076396","navn":"Skogbrynet Kanvas-barnehage","lat":59.91739,"lng":10.64654,"alder":"1 - 5","eierform":"Privat","antallBarn":65},{"orgnr":"973076361","navn":"Rudshøgda Kanvas-naturbarnehage","lat":59.84625,"lng":10.82536,"alder":"1 - 5","eierform":"Privat","antallBarn":45},{"orgnr":"973076353","navn":"Blakkensvei barnehage","lat":59.84173,"lng":10.82981,"alder":"1 - 5","eierform":"Kommunal","antallBarn":54},{"orgnr":"972734721","navn":"Maridalen barnehage SA","lat":60.00451,"lng":10.77238,"alder":"1 - 5","eierform":"Privat","antallBarn":25},{"orgnr":"972734713","navn":"Hallagerstua barnehage SA","lat":59.83921,"lng":10.79155,"alder":"1 - 5","eierform":"Privat","antallBarn":28},{"orgnr":"972335002","navn":"Solbakken Barnas Hage","lat":59.9217,"lng":10.66638,"alder":"1 - 5","eierform":"Privat","antallBarn":27},{"orgnr":"972252557","navn":"Søndre Dal Gård barnehage","lat":59.85113,"lng":10.83861,"alder":"1 - 5","eierform":"Privat","antallBarn":45},{"orgnr":"972218480","navn":"Forskningsparken Montessori AS","lat":59.94075,"lng":10.716,"alder":"1 - 5","eierform":"Privat","antallBarn":39},{"orgnr":"972181242","navn":"Øraker barnehage AS","lat":59.92148,"lng":10.63043,"alder":"1 - 5","eierform":"Privat","antallBarn":29},{"orgnr":"972179337","navn":"Frognerkilen barnehage","lat":59.9159,"lng":10.69915,"alder":"1 - 5","eierform":"Privat","antallBarn":54},{"orgnr":"971929758","navn":"Villa Utsikten Frilufts- og idrettsbarnehage AS","lat":59.95016,"lng":10.68217,"alder":"1 - 5","eierform":"Privat","antallBarn":27},{"orgnr":"937092326","navn":"Risløkka familiebarnehage AS","lat":59.96272,"lng":10.87569,"alder":"","eierform":"Privat","antallBarn":0},{"orgnr":"937024819","navn":"Stig barnehage","lat":59.95098,"lng":10.92058,"alder":"","eierform":"Kommunal","antallBarn":0},{"orgnr":"936179029","navn":"Ulvenkroken barnehage","lat":59.92553,"lng":10.81487,"alder":"1 - 5","eierform":"Kommunal","antallBarn":35},{"orgnr":"934834151","navn":"Lille My familiebarnehage Bestumveien AS","lat":59.92078,"lng":10.66102,"alder":"1 - 2","eierform":"Privat","antallBarn":7},{"orgnr":"934371674","navn":"Løren Botaniske barnehage","lat":59.9332,"lng":10.7936,"alder":"1 - 5","eierform":"Kommunal","antallBarn":53},{"orgnr":"933560627","navn":"Gregers barnehage","lat":59.92916,"lng":10.79473,"alder":"1 - 5","eierform":"Kommunal","antallBarn":52},{"orgnr":"932943492","navn":"Ingvildsbarnehage Bestumveien AS","lat":59.92212,"lng":10.65596,"alder":"1 - 2","eierform":"Privat","antallBarn":8},{"orgnr":"932713195","navn":"Lfo Maternelle AS","lat":59.91702,"lng":10.71729,"alder":"3 - 5","eierform":"Privat","antallBarn":95},{"orgnr":"931394533","navn":"Bekkelaget familiebarnehage Kristoffersen","lat":59.88295,"lng":10.77505,"alder":"1 - 2","eierform":"Privat","antallBarn":4},{"orgnr":"930980102","navn":"Korsvollhallen barnehage","lat":59.96088,"lng":10.75695,"alder":"1 - 5","eierform":"Kommunal","antallBarn":54},{"orgnr":"930776807","navn":"Julius barnehage","lat":59.92799,"lng":10.71175,"alder":"1 - 5","eierform":"Kommunal","antallBarn":49},{"orgnr":"930640220","navn":"Almelia - Sio barnehage AS","lat":59.95155,"lng":10.73061,"alder":"1 - 5","eierform":"Privat","antallBarn":53},{"orgnr":"930640190","navn":"Skogly - Sio barnehage AS","lat":59.96469,"lng":10.73102,"alder":"1 - 5","eierform":"Privat","antallBarn":51},{"orgnr":"930639958","navn":"Blindernveien - Sio barnehage AS","lat":59.93584,"lng":10.725,"alder":"1 - 5","eierform":"Privat","antallBarn":49},{"orgnr":"930639818","navn":"Lille Bamsebo - Sio barnehage AS","lat":59.93575,"lng":10.71699,"alder":"1 - 2","eierform":"Privat","antallBarn":18},{"orgnr":"930639699","navn":"Frydenhaug - Sio barnehage AS","lat":59.96294,"lng":10.7343,"alder":"1 - 5","eierform":"Privat","antallBarn":58},{"orgnr":"930639664","navn":"Bamsebo - Sio barnehage AS","lat":59.93693,"lng":10.71964,"alder":"1 - 5","eierform":"Privat","antallBarn":51},{"orgnr":"930639648","navn":"Bislettbekken - Sio barnehage AS","lat":59.9216,"lng":10.73404,"alder":"1 - 2","eierform":"Privat","antallBarn":21},{"orgnr":"930639451","navn":"Klossen - Sio barnehage AS","lat":59.96428,"lng":10.72896,"alder":"1 - 5","eierform":"Privat","antallBarn":50},{"orgnr":"930639354","navn":"Eilert Sundt - Sio barnehage AS","lat":59.94059,"lng":10.72474,"alder":"1 - 5","eierform":"Privat","antallBarn":70},{"orgnr":"929343514","navn":"Breidablikk barnehage","lat":59.92368,"lng":10.74578,"alder":"1 - 5","eierform":"Kommunal","antallBarn":48},{"orgnr":"927384973","navn":"Norlandia Aker Brygge barnehage","lat":59.90976,"lng":10.7238,"alder":"1 - 5","eierform":"Privat","antallBarn":42},{"orgnr":"927159201","navn":"Holmenveien barnehage","lat":59.9442,"lng":10.69737,"alder":"1 - 5","eierform":"Kommunal","antallBarn":178},{"orgnr":"926316818","navn":"Lykketrollet barnehage AS","lat":59.90439,"lng":10.83022,"alder":"1 - 5","eierform":"Privat","antallBarn":21},{"orgnr":"925824399","navn":"Læringsverkstedet Myrens Doremi barnehage","lat":59.93347,"lng":10.75959,"alder":"1 - 5","eierform":"Privat","antallBarn":67},{"orgnr":"925745367","navn":"Hovseter barnehage AS","lat":59.95198,"lng":10.65598,"alder":"1 - 5","eierform":"Privat","antallBarn":29},{"orgnr":"925497541","navn":"Hovinenga barnehage","lat":59.91647,"lng":10.80328,"alder":"1 - 5","eierform":"Kommunal","antallBarn":51},{"orgnr":"925106828","navn":"Nybyen barnehage","lat":59.9366,"lng":10.80604,"alder":"1 - 5","eierform":"Kommunal","antallBarn":100},{"orgnr":"924667311","navn":"Harbitz aktivitetsbarnehage","lat":59.9251,"lng":10.6737,"alder":"1 - 5","eierform":"Kommunal","antallBarn":71},{"orgnr":"924645660","navn":"Ensjø Torg barnehage","lat":59.91367,"lng":10.78756,"alder":"1 - 5","eierform":"Kommunal","antallBarn":62},{"orgnr":"924524146","navn":"Lillo Gård barnehage","lat":59.94475,"lng":10.7701,"alder":"1 - 5","eierform":"Kommunal","antallBarn":56},{"orgnr":"924032669","navn":"Portnerboligen naturbarnehage","lat":59.91189,"lng":10.71191,"alder":"1 - 5","eierform":"Kommunal","antallBarn":18},{"orgnr":"923191577","navn":"Stovnerfaret barnehage","lat":59.95562,"lng":10.92586,"alder":"1 - 5","eierform":"Kommunal","antallBarn":28},{"orgnr":"923068783","navn":"Haugenstua Torg - åpen barnehage","lat":59.95182,"lng":10.91092,"alder":"","eierform":"Kommunal","antallBarn":0},{"orgnr":"922827087","navn":"Petersborg barnehage","lat":59.9167,"lng":10.7873,"alder":"1 - 5","eierform":"Kommunal","antallBarn":54},{"orgnr":"922356289","navn":"Hasselhaugen barnehage","lat":59.93764,"lng":10.72902,"alder":"1 - 5","eierform":"Kommunal","antallBarn":49},{"orgnr":"922265895","navn":"Fjellstuveien barnehage","lat":59.95877,"lng":10.92624,"alder":"1 - 5","eierform":"Kommunal","antallBarn":54},{"orgnr":"922265852","navn":"Vestliskogen barnehage","lat":59.97506,"lng":10.93002,"alder":"1 - 5","eierform":"Kommunal","antallBarn":48},{"orgnr":"922168547","navn":"Nydalen Allé barnehage","lat":59.94809,"lng":10.77211,"alder":"1 - 5","eierform":"Kommunal","antallBarn":43},{"orgnr":"922080658","navn":"Vollebekk barnehage","lat":59.93758,"lng":10.82935,"alder":"1 - 5","eierform":"Kommunal","antallBarn":144},{"orgnr":"921755570","navn":"Munkerud miljøbarnehage","lat":59.85862,"lng":10.81364,"alder":"1 - 5","eierform":"Kommunal","antallBarn":81},{"orgnr":"921391234","navn":"Kilden barnehage","lat":59.94933,"lng":10.82079,"alder":"1 - 5","eierform":"Kommunal","antallBarn":150},{"orgnr":"920187943","navn":"Nedregate barnehage","lat":59.92026,"lng":10.7544,"alder":"1 - 5","eierform":"Kommunal","antallBarn":63},{"orgnr":"919501723","navn":"Norlandia Voksentoppen Ski og friluftsbarnehage","lat":59.97732,"lng":10.66519,"alder":"1 - 5","eierform":"Privat","antallBarn":124},{"orgnr":"918871217","navn":"Haugenstien barnehage","lat":59.94684,"lng":10.89979,"alder":"1 - 5","eierform":"Kommunal","antallBarn":54},{"orgnr":"918381309","navn":"Strekkoden barnehage","lat":59.90799,"lng":10.76193,"alder":"1 - 5","eierform":"Kommunal","antallBarn":51},{"orgnr":"918290222","navn":"Valle Hovin barnehage","lat":59.91732,"lng":10.80533,"alder":"1 - 5","eierform":"Privat","antallBarn":120},{"orgnr":"918049916","navn":"Best barnehage AS","lat":59.94441,"lng":10.78659,"alder":"1 - 5","eierform":"Privat","antallBarn":44},{"orgnr":"917980535","navn":"Gladengveien barnehage AS","lat":59.92752,"lng":10.74365,"alder":"","eierform":"Privat","antallBarn":0},{"orgnr":"917744807","navn":"Brødfabrikken Fus barnehage AS","lat":59.92924,"lng":10.79526,"alder":"1 - 5","eierform":"Privat","antallBarn":78},{"orgnr":"917192715","navn":"Vassenga Fus barnehage AS","lat":59.91511,"lng":10.8407,"alder":"1 - 5","eierform":"Privat","antallBarn":75},{"orgnr":"917020345","navn":"Lykketrollet familiebarnehage Avdeling Bogerudveien 25 AS","lat":59.87682,"lng":10.83799,"alder":"1 - 2","eierform":"Privat","antallBarn":8},{"orgnr":"915639607","navn":"Espira Grefsen Stasjon barnehage","lat":59.94133,"lng":10.77785,"alder":"1 - 5","eierform":"Privat","antallBarn":149},{"orgnr":"915500072","navn":"Læringsverkstedet Mortensrud barnehage","lat":59.84826,"lng":10.83077,"alder":"1 - 5","eierform":"Privat","antallBarn":64},{"orgnr":"914987679","navn":"Hausmannsgate barnehage","lat":59.91819,"lng":10.75304,"alder":"1 - 5","eierform":"Kommunal","antallBarn":118},{"orgnr":"914419417","navn":"Fjordbyen barnehage AS","lat":59.9107,"lng":10.71854,"alder":"1 - 5","eierform":"Privat","antallBarn":69},{"orgnr":"914323061","navn":"Læringsverkstedet Vestskrenten idrettsbarnehage","lat":59.83259,"lng":10.78361,"alder":"1 - 5","eierform":"Privat","antallBarn":84},{"orgnr":"914129427","navn":"Baglerbyen Fus barnehage AS","lat":59.9029,"lng":10.77441,"alder":"1 - 5","eierform":"Privat","antallBarn":69},{"orgnr":"913497554","navn":"Kongeørnen barnehage AS","lat":59.9599,"lng":10.67672,"alder":"1 - 5","eierform":"Privat","antallBarn":27},{"orgnr":"913473000","navn":"Sjøutsikten familiebarnehage Hernandez-Lillebekk","lat":59.8558,"lng":10.78564,"alder":"1 - 2","eierform":"Privat","antallBarn":4},{"orgnr":"913343174","navn":"De Ni Musene AS avd Ekeberg","lat":59.89434,"lng":10.79271,"alder":"1 - 2","eierform":"Privat","antallBarn":8},{"orgnr":"913043898","navn":"Nemo familiebarnehage Filiz Göcücü","lat":59.95384,"lng":10.8487034,"alder":"1 - 2","eierform":"Privat","antallBarn":8},{"orgnr":"912827437","navn":"Stålverkskroken barnehage AS","lat":59.9178,"lng":10.7902,"alder":"1 - 5","eierform":"Privat","antallBarn":80},{"orgnr":"912364445","navn":"Løkkeberg barnehage","lat":59.93341,"lng":10.74877,"alder":"1 - 5","eierform":"Kommunal","antallBarn":58},{"orgnr":"912267334","navn":"Espira Spirea barnehage","lat":59.93235,"lng":10.80093,"alder":"1 - 5","eierform":"Privat","antallBarn":76},{"orgnr":"912076865","navn":"Espira Torshovdalen barnehage","lat":59.93737,"lng":10.78085,"alder":"1 - 5","eierform":"Privat","antallBarn":80},{"orgnr":"912071561","navn":"Lykketrollet familiebarnehage Avdeling Krokliveien AS","lat":59.93761,"lng":10.81798,"alder":"1 - 2","eierform":"Privat","antallBarn":8},{"orgnr":"912022498","navn":"Langleiken barnehage","lat":59.91367,"lng":10.76913,"alder":"1 - 5","eierform":"Kommunal","antallBarn":32},{"orgnr":"911944812","navn":"Læringsverkstedet Bjerke Panorama barnehage","lat":59.94142,"lng":10.80802,"alder":"1 - 5","eierform":"Privat","antallBarn":60},{"orgnr":"911737337","navn":"Tomm Murstad friluftsbarnehage AS","lat":59.98167,"lng":10.66693,"alder":"1 - 5","eierform":"Privat","antallBarn":34},{"orgnr":"899650352","navn":"Læringsverkstedet Munkebekken idrettsbarnehage","lat":59.93117,"lng":10.91435,"alder":"1 - 5","eierform":"Privat","antallBarn":153},{"orgnr":"899303962","navn":"0 - 6 Vålerenggata barnehage AS","lat":59.90791,"lng":10.78429,"alder":"1 - 5","eierform":"Privat","antallBarn":26},{"orgnr":"899164512","navn":"Læringsverkstedet Konfektfabrikken barnehage","lat":59.92619,"lng":10.76761,"alder":"1 - 5","eierform":"Privat","antallBarn":67},{"orgnr":"896646982","navn":"Amigos Tornerose familiebarnehage","lat":59.92074,"lng":10.70745,"alder":"1 - 2","eierform":"Privat","antallBarn":4},{"orgnr":"894934182","navn":"Læringsverkstedet Østmarka idrettsbarnehage","lat":59.89988,"lng":10.85351,"alder":"1 - 5","eierform":"Privat","antallBarn":136},{"orgnr":"894754672","navn":"Husmannsplassen barnehage","lat":59.90046,"lng":10.80917,"alder":"1 - 5","eierform":"Kommunal","antallBarn":80},{"orgnr":"894436662","navn":"Alleen barnehage","lat":59.91462,"lng":10.79447,"alder":"1 - 5","eierform":"Privat","antallBarn":72},{"orgnr":"894393122","navn":"Frierveien barnehage","lat":59.88874,"lng":10.77507,"alder":"1 - 5","eierform":"Kommunal","antallBarn":66},{"orgnr":"893765832","navn":"Gransbakken barnehage","lat":59.94635,"lng":10.90079,"alder":"1 - 5","eierform":"Kommunal","antallBarn":73},{"orgnr":"893472622","navn":"Lykketrollet familiebarnehage Avdeling Bogerudveien 27 AS","lat":59.87671,"lng":10.83815,"alder":"1 - 2","eierform":"Privat","antallBarn":8},{"orgnr":"893248412","navn":"Lillohagen Fus barnehage AS","lat":59.94423,"lng":10.7727,"alder":"1 - 5","eierform":"Privat","antallBarn":60},{"orgnr":"893149732","navn":"Lykketrollet familiebarnehage Avdeling Kildeveien AS","lat":59.9478,"lng":10.80579,"alder":"1 - 2","eierform":"Privat","antallBarn":4},{"orgnr":"892899312","navn":"Amigos Du og Jeg og Vi To familiebarnehage","lat":59.94955,"lng":10.68148,"alder":"1 - 2","eierform":"Privat","antallBarn":8},{"orgnr":"892775362","navn":"Læringsverkstedet Waldemars barnehage","lat":59.9278,"lng":10.75301,"alder":"1 - 5","eierform":"Privat","antallBarn":61},{"orgnr":"892022682","navn":"Tallberget barnehage","lat":59.89367,"lng":10.82334,"alder":"1 - 5","eierform":"Kommunal","antallBarn":79},{"orgnr":"891041942","navn":"Eitillstad Fus barnehage","lat":59.90506,"lng":10.79384,"alder":"1 - 5","eierform":"Privat","antallBarn":72},{"orgnr":"890825842","navn":"Ragnas Hage AS","lat":59.93947,"lng":10.77695,"alder":"1 - 5","eierform":"Privat","antallBarn":123},{"orgnr":"888774122","navn":"Plutti Plott familiebarnehage","lat":59.86081,"lng":10.81027,"alder":"1 - 2","eierform":"Privat","antallBarn":8},{"orgnr":"888540512","navn":"Sommerfryd barnehage","lat":59.91383,"lng":10.7754,"alder":"1 - 5","eierform":"Kommunal","antallBarn":90},{"orgnr":"888496092","navn":"Maurtua familiebarnehage","lat":59.93608,"lng":10.8196,"alder":"1 - 2","eierform":"Privat","antallBarn":4},{"orgnr":"888056882","navn":"Brumlebassen barnehage AS","lat":59.89897,"lng":10.79597,"alder":"1 - 5","eierform":"Privat","antallBarn":51},{"orgnr":"887723192","navn":"Montesorribarnehagen Solsikken Maristova","lat":59.94608,"lng":10.75999,"alder":"1 - 2","eierform":"Privat","antallBarn":12},{"orgnr":"887722862","navn":"Montessoribarnehagen Solsikken Lilleputt","lat":59.93601,"lng":10.65291,"alder":"1 - 5","eierform":"Privat","antallBarn":51},{"orgnr":"887662592","navn":"Hakkebakkeskogen Kolderupsvei","lat":59.94513,"lng":10.79198,"alder":"1 - 2","eierform":"Privat","antallBarn":8},{"orgnr":"884170532","navn":"Hakkebakkeskogen Kirkesvingen","lat":59.95722,"lng":10.88596,"alder":"1 - 2","eierform":"Privat","antallBarn":8},{"orgnr":"881503972","navn":"Akersløkka barnehage","lat":59.92073,"lng":10.75662,"alder":"1 - 5","eierform":"Kommunal","antallBarn":62},{"orgnr":"881234092","navn":"Barnehagenvår Josefine","lat":59.94776,"lng":10.78315,"alder":"1 - 5","eierform":"Privat","antallBarn":41},{"orgnr":"880326422","navn":"Ole Brumm barnehage AS","lat":59.85388,"lng":10.80137,"alder":"1 - 2","eierform":"Privat","antallBarn":8},{"orgnr":"875317512","navn":"Bellevue Gård barnehage","lat":59.91939,"lng":10.77775,"alder":"1 - 5","eierform":"Kommunal","antallBarn":93},{"orgnr":"875316702","navn":"Oppsaltunet barnehage","lat":59.89207,"lng":10.83878,"alder":"1 - 5","eierform":"Kommunal","antallBarn":118},{"orgnr":"875316672","navn":"Nøklevann barnehage","lat":59.87774,"lng":10.84606,"alder":"1 - 5","eierform":"Kommunal","antallBarn":61},{"orgnr":"875316532","navn":"Orebakken barnehage","lat":59.95198,"lng":10.65157,"alder":"1 - 5","eierform":"Kommunal","antallBarn":54},{"orgnr":"875316222","navn":"Fjeldlund barnehage","lat":59.83264,"lng":10.79391,"alder":"1 - 5","eierform":"Kommunal","antallBarn":54},{"orgnr":"875316192","navn":"Asperud Fus barnehage AS","lat":59.83904,"lng":10.80143,"alder":"1 - 5","eierform":"Privat","antallBarn":55},{"orgnr":"875315862","navn":"Vigelandsparken barnehage","lat":59.92183,"lng":10.70113,"alder":"1 - 5","eierform":"Kommunal","antallBarn":48},{"orgnr":"875315382","navn":"Nordjordet barnehage","lat":59.92933,"lng":10.68874,"alder":"1 - 5","eierform":"Kommunal","antallBarn":56},{"orgnr":"875298232","navn":"Stubberudlia barnehage","lat":59.92559,"lng":10.86357,"alder":"1 - 5","eierform":"Kommunal","antallBarn":49},{"orgnr":"875298062","navn":"Myrvoll barnehage","lat":59.88479,"lng":10.85188,"alder":"1 - 5","eierform":"Kommunal","antallBarn":64},{"orgnr":"875291602","navn":"Fuglemyra barnehage","lat":59.89907,"lng":10.84791,"alder":"1 - 5","eierform":"Kommunal","antallBarn":86},{"orgnr":"875291432","navn":"Hegdehaugen barnehage","lat":59.92377,"lng":10.71442,"alder":"1 - 5","eierform":"Kommunal","antallBarn":39},{"orgnr":"875291262","navn":"Ammerudkollen barnehage","lat":59.96329,"lng":10.86967,"alder":"1 - 5","eierform":"Kommunal","antallBarn":117},{"orgnr":"875028642","navn":"Diakonhjemmet barnehage Borgenveien AS","lat":59.93531,"lng":10.70114,"alder":"1 - 5","eierform":"Privat","antallBarn":58},{"orgnr":"875016792","navn":"Teisen Vest barnehage","lat":59.91507,"lng":10.81208,"alder":"1 - 2","eierform":"Kommunal","antallBarn":14},{"orgnr":"875016652","navn":"Tørtberg Kanvas-barnehage","lat":59.92548,"lng":10.6981,"alder":"1 - 5","eierform":"Privat","antallBarn":42},{"orgnr":"875009532","navn":"Skauen barnehage SA","lat":59.94955,"lng":10.82292,"alder":"1 - 5","eierform":"Privat","antallBarn":18},{"orgnr":"874716812","navn":"Torshovtoppen barnehage","lat":59.93418,"lng":10.77299,"alder":"1 - 5","eierform":"Kommunal","antallBarn":63},{"orgnr":"874703362","navn":"Rishaven menighetsbarnehage","lat":59.94816,"lng":10.70259,"alder":"1 - 5","eierform":"Privat","antallBarn":33},{"orgnr":"873480882","navn":"Solemskogen naturbarnehage SA","lat":59.97838,"lng":10.81451,"alder":"1 - 5","eierform":"Privat","antallBarn":30},{"orgnr":"873280492","navn":"Ulvøya barnehage AS","lat":59.87101,"lng":10.77401,"alder":"1 - 5","eierform":"Privat","antallBarn":31},{"orgnr":"873076372","navn":"Dumpa Kanvas-musikkbarnehage","lat":59.90665,"lng":10.80017,"alder":"1 - 5","eierform":"Privat","antallBarn":68},{"orgnr":"872172572","navn":"Seilduken barnehage A/L","lat":59.92578,"lng":10.76337,"alder":"1 - 5","eierform":"Privat","antallBarn":54},{"orgnr":"832795232","navn":"Ingvildsbarnehage Holgerslystveien AS","lat":59.92249,"lng":10.65318,"alder":"1 - 2","eierform":"Privat","antallBarn":8},{"orgnr":"830640142","navn":"Lille Bislett - Sio barnehage AS","lat":59.92297,"lng":10.73431,"alder":"1 - 5","eierform":"Privat","antallBarn":59},{"orgnr":"826458372","navn":"Ulvenparken barnehage","lat":59.92547,"lng":10.81038,"alder":"1 - 5","eierform":"Kommunal","antallBarn":83},{"orgnr":"822119212","navn":"Krydderhagen barnehage","lat":59.9281,"lng":10.79562,"alder":"1 - 5","eierform":"Kommunal","antallBarn":62},{"orgnr":"818072872","navn":"Læringsverkstedet Langbølgen barnehage","lat":59.86753,"lng":10.81307,"alder":"1 - 5","eierform":"Privat","antallBarn":72},{"orgnr":"817088252","navn":"Abildsø menighetsbarnehage AS","lat":59.8798,"lng":10.82713,"alder":"1 - 5","eierform":"Privat","antallBarn":33},{"orgnr":"815982762","navn":"Nordtvet Gård barnehage AS","lat":59.9508,"lng":10.87453,"alder":"1 - 5","eierform":"Privat","antallBarn":85},{"orgnr":"814400352","navn":"Tåsenløkka barnehage","lat":59.94351,"lng":10.74714,"alder":"1 - 5","eierform":"Kommunal","antallBarn":78}]</script>
+<script>
+// =====================================================================
+// Barnehagefinner v2 — 5 punkter, rangering på sum av haversine-avstander,
+// konvekst hull for «innenfor triangulering»-merking.
+// =====================================================================
+
+const BARNEHAGER = JSON.parse(document.getElementById('barnehager').textContent);
+
+// --- Slot definitions
+const SLOTS = [
+  { id: 'home', label: 'Hjem',   color: 'var(--col-home)', defaultName: 'Hjem',          defaultRadius: 0.5, optional: false, nameEditable: false },
+  { id: 'job1', label: 'Jobb 1', color: 'var(--col-job1)', defaultName: 'Jobb 1',        defaultRadius: 2.0, optional: false, nameEditable: true  },
+  { id: 'job2', label: 'Jobb 2', color: 'var(--col-job2)', defaultName: 'Jobb 2',        defaultRadius: 2.0, optional: false, nameEditable: true  },
+  { id: 'poi1', label: 'POI 1',  color: 'var(--col-poi1)', defaultName: 'Besteforeldre', defaultRadius: 2.0, optional: true,  nameEditable: true  },
+  { id: 'poi2', label: 'POI 2',  color: 'var(--col-poi2)', defaultName: 'POI 2',         defaultRadius: 2.0, optional: true,  nameEditable: true  },
+];
+
+// --- State
+const state = {
+  points: Object.fromEntries(SLOTS.map(s => [s.id, { name: s.defaultName, lat: null, lng: null, address: '', radius: s.defaultRadius }])),
+};
+
+// Format radius nicely (strip trailing zeros)
+function fmtRadius(v) { return (Math.round(v * 100) / 100).toString() + ' km'; }
+
+// --- Map
+const map = L.map('map', { zoomControl: true }).setView([59.913, 10.752], 12);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 19,
+  attribution: '© OpenStreetMap-bidragsytere'
+}).addTo(map);
+const markerLayer = L.layerGroup().addTo(map);
+const pointLayer  = L.layerGroup().addTo(map);
+const hullLayer   = L.layerGroup().addTo(map);
+
+const legend = L.control({ position: 'topright' });
+legend.onAdd = function() {
+  const div = L.DomUtil.create('div', 'legend');
+  div.innerHTML = SLOTS.map(s => `<div><span class="dot" style="background:${s.color}"></span>${s.label}</div>`).join('')
+    + `<div style="margin-top:4px;border-top:1px solid #eee;padding-top:4px">
+         <span class="dot" style="background:var(--accent)"></span>Topp 8 barnehage<br>
+         <span class="dot" style="background:var(--hull)"></span>Innenfor polygon
+       </div>`;
+  return div;
+};
+legend.addTo(map);
+
+// --- Geometry helpers
+function haversineKm(a, b) {
+  const R = 6371;
+  const toRad = d => d * Math.PI / 180;
+  const dLat = toRad(b.lat - a.lat), dLng = toRad(b.lng - a.lng);
+  const la1 = toRad(a.lat), la2 = toRad(b.lat);
+  const h = Math.sin(dLat/2)**2 + Math.cos(la1)*Math.cos(la2)*Math.sin(dLng/2)**2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+// Andrew's monotone chain — convex hull
+function convexHull(points) {
+  if (points.length <= 1) return points.slice();
+  const pts = points.slice().sort((a, b) => a.lng - b.lng || a.lat - b.lat);
+  const cross = (o, a, b) => (a.lng - o.lng) * (b.lat - o.lat) - (a.lat - o.lat) * (b.lng - o.lng);
+  const lower = [];
+  for (const p of pts) {
+    while (lower.length >= 2 && cross(lower[lower.length-2], lower[lower.length-1], p) <= 0) lower.pop();
+    lower.push(p);
+  }
+  const upper = [];
+  for (let i = pts.length - 1; i >= 0; i--) {
+    const p = pts[i];
+    while (upper.length >= 2 && cross(upper[upper.length-2], upper[upper.length-1], p) <= 0) upper.pop();
+    upper.push(p);
+  }
+  lower.pop(); upper.pop();
+  return lower.concat(upper);
+}
+// Ray casting point-in-polygon
+function pointInPolygon(p, poly) {
+  if (poly.length < 3) return false;
+  let inside = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const xi = poly[i].lng, yi = poly[i].lat;
+    const xj = poly[j].lng, yj = poly[j].lat;
+    const intersect = (yi > p.lat) !== (yj > p.lat)
+      && p.lng < (xj - xi) * (p.lat - yi) / (yj - yi) + xi;
+    if (intersect) inside = !inside;
+  }
+  return inside;
+}
+
+// --- Kartverket geocoding
+async function kartverketSearch(q) {
+  if (!q || q.length < 3) return [];
+  const url = `https://ws.geonorge.no/adresser/v1/sok?sok=${encodeURIComponent(q)}&treffPerSide=6&asciiKompatibel=true&utkoordsys=4326`;
+  try {
+    const r = await fetch(url);
+    const d = await r.json();
+    return (d.adresser || []).map(a => ({
+      label: `${a.adressetekst}, ${a.postnummer} ${a.poststed}`,
+      lat: a.representasjonspunkt.lat,
+      lng: a.representasjonspunkt.lon,
+    }));
+  } catch { return []; }
+}
+function debounce(fn, ms) {
+  let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
+}
+
+// --- Build slot DOM
+const slotsRoot = document.getElementById('slots');
+SLOTS.forEach(s => {
+  const wrap = document.createElement('div');
+  wrap.className = 'slot';
+  wrap.innerHTML = `
+    <div class="label">
+      <span class="swatch" style="background:${s.color}"></span>
+      <span>${s.label}</span>
+      ${s.optional ? '<span class="opt">valgfri</span>' : ''}
+    </div>
+    ${s.nameEditable ? `
+      <div class="nameinput">
+        <input type="text" data-role="name" data-slot="${s.id}" value="${s.defaultName}" placeholder="Navn, f.eks. Anna sin jobb" />
+      </div>` : ''}
+    <div class="input-wrap">
+      <input type="text" data-role="addr" data-slot="${s.id}" autocomplete="off" placeholder="Skriv adresse…" />
+      <button type="button" class="clearbtn" data-role="clear" data-slot="${s.id}" title="Fjern" hidden>×</button>
+      <div class="suggest" data-role="sugg" data-slot="${s.id}" hidden></div>
+    </div>
+    <div class="radius-row">
+      <input type="range" data-role="radius" data-slot="${s.id}" min="0" max="5" step="0.25" value="${s.defaultRadius}" />
+      <span class="radius-val" data-role="radius-val" data-slot="${s.id}">${fmtRadius(s.defaultRadius)}</span>
+    </div>
+  `;
+  slotsRoot.appendChild(wrap);
+});
+
+// --- Wire up each slot
+SLOTS.forEach(s => {
+  const addr      = slotsRoot.querySelector(`input[data-role="addr"][data-slot="${s.id}"]`);
+  const sugg      = slotsRoot.querySelector(`div[data-role="sugg"][data-slot="${s.id}"]`);
+  const clear     = slotsRoot.querySelector(`button[data-role="clear"][data-slot="${s.id}"]`);
+  const nameIn    = slotsRoot.querySelector(`input[data-role="name"][data-slot="${s.id}"]`);
+  const radiusIn  = slotsRoot.querySelector(`input[data-role="radius"][data-slot="${s.id}"]`);
+  const radiusVal = slotsRoot.querySelector(`span[data-role="radius-val"][data-slot="${s.id}"]`);
+
+  if (nameIn) nameIn.addEventListener('input', () => {
+    state.points[s.id].name = nameIn.value || s.defaultName;
+    render();
+  });
+
+  radiusIn.addEventListener('input', () => {
+    const v = parseFloat(radiusIn.value);
+    state.points[s.id].radius = v;
+    radiusVal.textContent = fmtRadius(v);
+    render();
+  });
+
+  const run = debounce(async () => {
+    const results = await kartverketSearch(addr.value);
+    if (!results.length) { sugg.hidden = true; sugg.innerHTML = ''; return; }
+    sugg.innerHTML = '';
+    results.forEach(r => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = r.label;
+      // Use mousedown so it fires before blur
+      b.addEventListener('mousedown', (ev) => {
+        ev.preventDefault();
+        pickAddress(s.id, r);
+      });
+      sugg.appendChild(b);
+    });
+    sugg.hidden = false;
+  }, 250);
+  addr.addEventListener('input', run);
+  addr.addEventListener('focus', () => { if (sugg.children.length) sugg.hidden = false; });
+  addr.addEventListener('blur',  () => setTimeout(() => sugg.hidden = true, 150));
+  clear.addEventListener('click', () => {
+    state.points[s.id] = { name: state.points[s.id].name, lat: null, lng: null, address: '', radius: state.points[s.id].radius };
+    addr.value = '';
+    sugg.hidden = true; sugg.innerHTML = '';
+    clear.hidden = true;
+    render();
+  });
+});
+
+function pickAddress(slotId, r) {
+  state.points[slotId].lat = r.lat;
+  state.points[slotId].lng = r.lng;
+  state.points[slotId].address = r.label;
+  const addr  = slotsRoot.querySelector(`input[data-role="addr"][data-slot="${slotId}"]`);
+  const sugg  = slotsRoot.querySelector(`div[data-role="sugg"][data-slot="${slotId}"]`);
+  const clear = slotsRoot.querySelector(`button[data-role="clear"][data-slot="${slotId}"]`);
+  addr.value = r.label;
+  sugg.hidden = true; sugg.innerHTML = '';
+  clear.hidden = false;
+  // Recenter map if it's the home and there are no other points yet
+  const actives = activePoints();
+  if (actives.length === 1) {
+    map.setView([r.lat, r.lng], 13);
+  } else {
+    // Fit all
+    const group = L.latLngBounds(actives.map(p => [p.lat, p.lng]));
+    map.fitBounds(group, { padding: [40, 40], maxZoom: 14 });
+  }
+  render();
+}
+
+// --- Helpers
+function activePoints() {
+  return SLOTS.map(s => ({ ...state.points[s.id], slotId: s.id, color: s.color, slotLabel: s.label }))
+              .filter(p => p.lat != null && p.lng != null);
+}
+
+function escapeHtml(s) { return (s ?? '').toString().replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+// --- Clear all
+document.getElementById('clearbtn').addEventListener('click', () => {
+  SLOTS.forEach(s => {
+    state.points[s.id] = { name: s.defaultName, lat: null, lng: null, address: '', radius: s.defaultRadius };
+    const addr      = slotsRoot.querySelector(`input[data-role="addr"][data-slot="${s.id}"]`);
+    const clear     = slotsRoot.querySelector(`button[data-role="clear"][data-slot="${s.id}"]`);
+    const nameIn    = slotsRoot.querySelector(`input[data-role="name"][data-slot="${s.id}"]`);
+    const radiusIn  = slotsRoot.querySelector(`input[data-role="radius"][data-slot="${s.id}"]`);
+    const radiusVal = slotsRoot.querySelector(`span[data-role="radius-val"][data-slot="${s.id}"]`);
+    if (addr)      addr.value = '';
+    if (clear)     clear.hidden = true;
+    if (nameIn)    nameIn.value = s.defaultName;
+    if (radiusIn)  radiusIn.value = s.defaultRadius;
+    if (radiusVal) radiusVal.textContent = fmtRadius(s.defaultRadius);
+  });
+  map.setView([59.913, 10.752], 12);
+  render();
+});
+
+// --- Rendering
+const resultsEl  = document.getElementById('results');
+const sortDescEl = document.getElementById('sortdesc');
+
+function render() {
+  const active = activePoints();
+
+  // Clear map layers
+  markerLayer.clearLayers();
+  pointLayer.clearLayers();
+  hullLayer.clearLayers();
+
+  // Draw input points and their radius circles
+  active.forEach(p => {
+    if (p.radius > 0) {
+      L.circle([p.lat, p.lng], {
+        radius: p.radius * 1000, // km → meters
+        color: p.color, weight: 1.5, opacity: 0.55,
+        fillColor: p.color, fillOpacity: 0.07,
+      }).addTo(pointLayer);
+    }
+    const icon = L.divIcon({
+      className: '',
+      html: `<div class="point-marker" style="background:${p.color}"></div>`,
+      iconSize: [22, 22], iconAnchor: [11, 11],
+    });
+    L.marker([p.lat, p.lng], { icon, title: p.name })
+      .bindTooltip(`${p.name} · radius ${fmtRadius(p.radius)}`, { direction: 'top', offset: [0, -8] })
+      .addTo(pointLayer);
+  });
+
+  // Compute hull (only meaningful with ≥3 distinct points)
+  let hull = [];
+  if (active.length >= 3) {
+    hull = convexHull(active);
+    if (hull.length >= 3) {
+      L.polygon(hull.map(p => [p.lat, p.lng]), {
+        color: 'var(--hull)', weight: 2, fillColor: 'var(--hull)', fillOpacity: 0.06, dashArray: '6 4'
+      }).addTo(hullLayer);
+    }
+  }
+
+  // Ranking
+  if (active.length === 0) {
+    sortDescEl.textContent = '';
+    resultsEl.innerHTML = `<div class="empty">Legg inn minst én adresse for å rangere barnehager.</div>`;
+    return;
+  }
+
+  const scored = BARNEHAGER.map(b => {
+    const bp = { lat: b.lat, lng: b.lng };
+    let rawSum = 0, excessSum = 0;
+    const perPoint = {};
+    let insideAnyCircle = false;
+    for (const p of active) {
+      const d = haversineKm(p, bp);
+      rawSum += d;
+      excessSum += Math.max(0, d - p.radius);
+      perPoint[p.slotId] = { d, radius: p.radius, within: p.radius > 0 && d <= p.radius };
+      if (p.radius > 0 && d <= p.radius) insideAnyCircle = true;
+    }
+    const insideHull = hull.length >= 3 ? pointInPolygon(bp, hull) : false;
+    return {
+      ...b,
+      rawSum, excessSum,
+      avgKm: rawSum / active.length,
+      perPoint,
+      insideHull, insideAnyCircle,
+      inside: insideHull || insideAnyCircle,
+    };
+  });
+  // Primary: "inside" (hull eller hvilken som helst radius) rangeres som én gruppe på toppen.
+  // Sekundært: excess (sum avstand utover radiene). Tiebreaker: rå sum av avstander.
+  scored.sort((a, b) => {
+    if (a.inside !== b.inside) return a.inside ? -1 : 1;
+    return (a.excessSum - b.excessSum) || (a.rawSum - b.rawSum);
+  });
+  const top = scored.slice(0, 8);
+
+  // Description
+  const insideCount = top.filter(x => x.inside).length;
+  const zeroExcess = top.filter(x => x.excessSum === 0).length;
+  const bits = [`${active.length} punkt${active.length===1?'':'er'}`];
+  if (zeroExcess) bits.push(`${zeroExcess}/8 innenfor alle radier`);
+  if (insideCount) bits.push(`${insideCount} markert`);
+  sortDescEl.textContent = bits.join(' · ');
+
+  // Draw top 8 markers
+  top.forEach((b, idx) => {
+    const cls = `bhg-marker top${b.inside ? ' inside' : ''}`;
+    const icon = L.divIcon({
+      className: '',
+      html: `<div class="${cls}"></div>`,
+      iconSize: [14, 14], iconAnchor: [7, 7],
+    });
+    const m = L.marker([b.lat, b.lng], { icon })
+      .bindTooltip(`${idx+1}. ${b.navn} · snitt ${b.avgKm.toFixed(2)} km`, { direction: 'top', offset: [0, -8] });
+    m.on('click', () => openDetail(b.orgnr));
+    markerLayer.addLayer(m);
+  });
+
+  // Faint context dots for non-top within ~4km of centroid
+  const cLat = active.reduce((s, p) => s + p.lat, 0) / active.length;
+  const cLng = active.reduce((s, p) => s + p.lng, 0) / active.length;
+  scored.slice(8).forEach(b => {
+    if (haversineKm({lat: cLat, lng: cLng}, {lat: b.lat, lng: b.lng}) > 4) return;
+    const cls = `bhg-marker${b.inside ? ' inside' : ''}`;
+    const icon = L.divIcon({
+      className: '',
+      html: `<div class="${cls}" style="opacity:.55"></div>`,
+      iconSize: [10, 10], iconAnchor: [5, 5],
+    });
+    const m = L.marker([b.lat, b.lng], { icon })
+      .bindTooltip(b.navn, { direction: 'top', offset: [0, -6] });
+    m.on('click', () => openDetail(b.orgnr));
+    markerLayer.addLayer(m);
+  });
+
+  // Render list
+  resultsEl.innerHTML = '';
+  top.forEach((b, idx) => {
+    const el = document.createElement('div');
+    el.className = 'card' + (b.inside ? ' inside' : '');
+    const tagCls = b.eierform === 'Privat' ? 'priv' : (b.eierform === 'Kommunal' ? 'kom' : '');
+    const perLabels = active.map(p => {
+      const pp = b.perPoint[p.slotId];
+      const check = pp.within ? '✓ ' : '';
+      const radStr = p.radius > 0 ? `/${p.radius}` : '';
+      return `${check}${escapeHtml(p.name)}: ${pp.d.toFixed(1)}${radStr} km`;
+    }).join(' · ');
+    const excessLabel = b.excessSum === 0
+      ? 'innenfor alle radier'
+      : `${b.excessSum.toFixed(2)} km utenfor`;
+    el.innerHTML = `
+      <div class="name"><span class="rank">${idx+1}</span>${escapeHtml(b.navn)} ${b.inside ? `<span class="tag hull">innenfor ${b.insideHull && b.insideAnyCircle ? 'polygon + radius' : b.insideHull ? 'polygon' : 'radius'}</span>` : ''}</div>
+      <div class="meta">
+        <span class="tag ${tagCls}">${b.eierform || '—'}</span>
+        <span class="tag">${b.alder || '—'}</span>
+        <span class="tag">${b.antallBarn} barn</span>
+      </div>
+      <div class="meta" style="margin-top:2px">${perLabels}</div>
+      <div class="metric">
+        <div class="big">${b.avgKm.toFixed(2)} km</div>
+        <div class="small">${escapeHtml(excessLabel)}</div>
+      </div>`;
+    el.onclick = () => openDetail(b.orgnr);
+    resultsEl.appendChild(el);
+  });
+}
+
+// --- Detail modal (uses live API)
+async function openDetail(orgnr) {
+  const b = BARNEHAGER.find(x => x.orgnr === orgnr);
+  if (!b) return;
+  const modal = document.getElementById('modal');
+  const bg = document.getElementById('modalbg');
+  modal.innerHTML = `
+    <a class="close" onclick="closeModal()">×</a>
+    <h2>${escapeHtml(b.navn)}</h2>
+    <div class="sub">${b.eierform} · ${b.alder} · ${b.antallBarn} barn · orgnr ${b.orgnr}</div>
+    <div>Laster detaljer fra Barnehagefakta…</div>`;
+  bg.classList.add('on');
+  try {
+    const r = await fetch(`https://barnehagefakta.no/api/barnehage/${orgnr}`);
+    const d = await r.json();
+    const ind = d.indikatorDataBarnehage || {};
+    const kom = d.indikatorDataKommune || {};
+    const ka = d.kontaktinformasjon || {};
+    const adr = ka.besoksAdresse || ka.postAdresse || {};
+    const pedNorm = d.oppfyllerPedagognorm || '—';
+    modal.innerHTML = `
+      <a class="close" onclick="closeModal()">×</a>
+      <h2>${escapeHtml(d.navn)}</h2>
+      <div class="sub">${d.eierform} · ${d.alder} · orgnr ${d.orgnr}</div>
+
+      <div class="section">
+        <dl class="kv">
+          <dt>Besøksadresse</dt><dd>${escapeHtml([adr.adresselinje, adr.postnr, adr.poststed].filter(Boolean).join(', ') || '—')}</dd>
+          <dt>Åpningstid</dt><dd>${d.apningstidFra || '—'} – ${d.apningstidTil || '—'}</dd>
+          <dt>Kostpenger</dt><dd>${d.kostpenger ?? '—'} kr/mnd</dd>
+          <dt>Pedagogisk profil</dt><dd>${(d.pedagogiskProfil || []).join(', ') || '—'}</dd>
+          <dt>Pedagognorm</dt><dd>${pedNorm}</dd>
+          <dt>Leke- og oppholdsareal</dt><dd>${ind.lekeOgOppholdsarealPerBarn ?? '—'} m²/barn (kommune: ${kom.lekeOgOppholdsarealPerBarn ?? '—'})</dd>
+          <dt>Telefon</dt><dd>${ka.telefon || '—'}</dd>
+          <dt>E-post</dt><dd>${ka.epost ? `<a href="mailto:${escapeHtml(ka.epost)}">${escapeHtml(ka.epost)}</a>` : '—'}</dd>
+          <dt>Nettside</dt><dd>${ka.url ? `<a href="${escapeHtml(ka.url)}" target="_blank" rel="noopener">${escapeHtml(ka.url)}</a>` : '—'}</dd>
+        </dl>
+      </div>
+
+      <div class="section">
+        <strong>Bemanning</strong>
+        ${barRow('Barn per ansatt', ind.antallBarnPerAnsatt, kom.antallBarnPerAnsatt, 10, true)}
+        ${barRow('Barn per barnehagelærer', ind.antallBarnPerBarnehagelaerer, kom.antallBarnPerBarnehagelaerer, 20, true)}
+        ${barRow('Andel barnehagelærere (%)', ind.andelAnsatteBarnehagelarer, kom.andelAnsatteBarnehagelarer, 100, false)}
+        ${barRow('Andel fagarbeidere (%)', ind.andelAnsatteMedBarneOgUngdomsarbeiderfag, kom.andelAnsatteMedBarneOgUngdomsarbeiderfag, 100, false)}
+      </div>
+
+      <div class="section">
+        <strong>Foreldreundersøkelsen (kommune${kom.foreldreundersokelsenArgang ? ' ' + kom.foreldreundersokelsenArgang : ''})</strong>
+        <div class="hint">Barnehagefakta publiserer kun kommunesnitt.</div>
+        ${barRow('Trivsel', kom.foreldreundersokelsenBarnetsTrivsel, null, 5, false)}
+        ${barRow('Utvikling', kom.foreldreundersokelsenBarnetsUtvikling, null, 5, false)}
+        ${barRow('Tilfredshet', kom.foreldreundersokelsenTilfredshet, null, 5, false)}
+      </div>
+
+      <div class="actions">
+        <a class="btn" href="https://barnehagefakta.udir.no/barnehage/${d.orgnr}" target="_blank" rel="noopener">Åpne på Barnehagefakta</a>
+        ${d.urlTilSoknadOmBarnehageplass ? `<a class="btn btn-primary" href="${escapeHtml(d.urlTilSoknadOmBarnehageplass)}" target="_blank" rel="noopener">Søk om plass</a>` : ''}
+      </div>`;
+  } catch (e) {
+    modal.innerHTML += `<div class="section" style="color:var(--danger)">Kunne ikke hente detaljer (${escapeHtml(e.message)}).</div>`;
+  }
+}
+function barRow(label, val, ref, max, lowerBetter) {
+  if (val == null) return `<div class="bar"><span style="flex:0 0 200px">${label}</span><span class="bar-fill"></span><span>—</span></div>`;
+  const pct = Math.min(100, Math.max(0, (val / max) * 100));
+  const color = lowerBetter ? (val <= (ref ?? max) ? 'var(--accent)' : 'var(--accent-2)') : 'var(--accent)';
+  const refStr = ref != null ? ` (kommune ${ref})` : '';
+  return `<div class="bar"><span style="flex:0 0 200px">${label}</span><span class="bar-fill"><span style="width:${pct}%;background:${color}"></span></span><span style="min-width:80px;text-align:right">${val}${refStr}</span></div>`;
+}
+function closeModal(ev) { if (!ev || ev.target.id === 'modalbg') document.getElementById('modalbg').classList.remove('on'); }
+document.addEventListener('keydown', e => { if (e.key === 'Escape') document.getElementById('modalbg').classList.remove('on'); });
+
+// Initial render
+render();
+</script>
+</body>
+</html>
